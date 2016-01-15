@@ -1,0 +1,36 @@
+* Building
+
+  Prerequisites:
+    - fixbuf library (https://tools.netsa.cert.org/fixbuf/index.html)
+    - log4c library (http://log4c.sourceforge.net/)
+    
+  Tools:
+    - GCC 4
+    - GNU make
+
+  Run 'make all' command to build. Binary can be found in a 'bin' directory.
+  
+  
+* Configuration
+
+  Configuration stored in a file 'nvipfix.config'
+  Sample configuration:
+  -----
+  # hostname of the switch (read from the system)
+  switch switchName
+  
+  # List of collectors
+  collector collectorName {
+	  collector-hostname 192.168.0.6
+	  transport udp
+	  transport-port 9991
+	  dscp 0
+  }
+  -----
+  
+  
+* Usage
+
+  nvIPFIX <datafile> <start_ts> <end_ts>" );
+    datafile - datafile (JSON) name
+    start_ts/end_ts - ISO 8601 datetime (YYYY-MM-DDTHH:mm:SS)
