@@ -32,7 +32,10 @@ typedef struct {
 	bool hasDataFilename;
 	nvIPFIX_datetime_t startTs;
 	nvIPFIX_datetime_t endTs;
-} nvipfix_args_t;
+} nvIPFIX_args_t;
+
+
+nvIPFIX_error_t nvipfix_args_parse( char * a_argv[], size_t a_argc, nvIPFIX_args_t * a_args );
 
 
 #endif /* __NVIPFIX_ARGS_H */

@@ -30,8 +30,8 @@
 #define NVIPFIX_T( a ) (a)
 
 #ifdef __linux__
-#define NVIPFIXDEF_POSIX
-#define NVIPFIXDEF_USE_INOTIFY
+#define NVIPFIX_DEF_POSIX
+#define NVIPFIX_DEF_USE_INOTIFY
 #endif
 
 #define NVIPFIX_NULL_ARGS_VOID_GUARD_1( a ) { if ((a) == NULL) return; }
@@ -51,6 +51,8 @@
 #define NVIPFIX_INIT_ERROR( a_errorVar ) nvIPFIX_error_t a_errorVar = { .code = NV_IPFIX_ERROR_CODE_NONE, .data = NULL }
 #define NVIPFIX_INIT_ERROR_WITH_CODE( a_code ) { .code = a_code, .data = NULL }
 #define NVIPFIX_RETURN_ERROR( a_error, a_code ) a_error.code = a_code; return a_error;
+#define NVIPFIX_ERROR_HANDLER( a_name ) error ## a_name:
+#define NVIPFIX_RAISE_ERROR( a_error, a_code, a_name ) a_error.code = a_code; goto error ## a_name;
 
 
 enum {
@@ -68,6 +70,7 @@ typedef int64_t nvIPFIX_I64;
 
 typedef enum {
 	NV_IPFIX_ERROR_CODE_NONE = 0,
+	NV_IPFIX_ERROR_CODE_INVALID_ARGUMENTS = 0,
 	NV_IPFIX_ERROR_CODE_ALLOCATE_INFO_MODEL,
 	NV_IPFIX_ERROR_CODE_ALLOCATE_SESSION,
 	NV_IPFIX_ERROR_CODE_ALLOCATE_EXPORTER,

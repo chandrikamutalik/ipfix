@@ -125,10 +125,12 @@ static const nvIPFIX_setting_t Settings[] = {
 				NULL, port, nvipfix_parse_string ),
 
 		NVIPFIX_CONFIG_SETTING_COLLECTOR( "dscp", SettingIdCollectorDscp, SettingIdCollector,
-				NULL, dscp, nvipfix_parse_octet )
+				NULL, dscp, nvipfix_parse_octet ),
+
+		{ NULL }
 };
 
-static const size_t SettingsCount = (sizeof Settings) / sizeof (nvIPFIX_setting_t);
+static const size_t SettingsCount = ((sizeof Settings) / sizeof (nvIPFIX_setting_t)) - 1;
 
 static nvIPFIX_collector_info_list_item_t * CollectorList = NULL;
 

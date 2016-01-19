@@ -3,6 +3,7 @@
   Prerequisites:
     - fixbuf library (https://tools.netsa.cert.org/fixbuf/index.html)
     - log4c library (http://log4c.sourceforge.net/)
+    - OpenSSL library (https://www.openssl.org/)
     
   Tools:
     - GCC 4
@@ -19,6 +20,10 @@
   # hostname of the switch (read from the system)
   switch switchName
   
+  switch-nvapi-host host.domain
+  switch-nvapi-login switchLogin
+  switch-nvapi-password switchPassword
+
   # List of collectors
   collector collectorName {
 	  collector-hostname 192.168.0.6
@@ -31,6 +36,6 @@
   
 * Usage
 
-  nvIPFIX <datafile> <start_ts> <end_ts>" );
+  nvIPFIX [-fdatafile] <start_ts> <end_ts>" );
     datafile - datafile (JSON) name
     start_ts/end_ts - ISO 8601 datetime (YYYY-MM-DDTHH:mm:SS)

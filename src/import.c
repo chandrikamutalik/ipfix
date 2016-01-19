@@ -22,9 +22,7 @@
 #include <stdbool.h>
 #include <string.h>
 
-#if 0
-#include "nvc_client.h"
-#endif
+#include "openssl/ssl.h"
 
 #include "include/types.h"
 #include "include/log.h"
@@ -81,10 +79,11 @@ static const nvIPFIX_import_item_t Items[] = {
 		NVIPFIX_IMPORT_ITEM( "started-time", flowStart, nvipfix_parse_datetime_iso8601 ),
 		NVIPFIX_IMPORT_ITEM( "ended-time", flowEnd, nvipfix_parse_datetime_iso8601 ),
 		NVIPFIX_IMPORT_ITEM( "ended-time", flowEnd, nvipfix_parse_datetime_iso8601 ),
-		NVIPFIX_IMPORT_ITEM( "latency", latency, nvipfix_parse_timespan_microseconds )
+		NVIPFIX_IMPORT_ITEM( "latency", latency, nvipfix_parse_timespan_microseconds ),
+		{ NULL }
 };
 
-static const size_t ItemsCount = (sizeof Items) / sizeof (nvIPFIX_import_item_t);
+static const size_t ItemsCount = ((sizeof Items) / sizeof (nvIPFIX_import_item_t)) - 1;
 
 
 nvIPFIX_data_record_list_t * nvipfix_import( FILE * a_file )
@@ -241,6 +240,29 @@ nvIPFIX_data_record_list_t * nvipfix_import_file( const nvIPFIX_TCHAR * a_fileNa
 
 	return result;
 }
+
+#ifdef NVIPFIX_DEF_ENABLE_NVC
+
+nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host, 
+    const nvIPFIX_CHAR * a_login, const nvIPFIX_CHAR * a_password )
+{
+    nvOS_io_t io = { 0 };
+
+    if (a_host != NULL) {
+        CRYPTO_malloc_init();
+        SSL_library_init();
+        SSL_load_error_strings();
+        ERR_load_BIO_strings();
+        OpenSSL_add_all_algorithms();
+        
+        nvc_init_net( &io, a_host );
+    }
+    else {
+		nvc_init( &io );
+    }
+}
+
+#endif
 
 bool nvipfix_import_parse_ingress( const char * a_s, void * a_value )
 {

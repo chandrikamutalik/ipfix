@@ -42,8 +42,16 @@ nvIPFIX_data_record_list_t * nvipfix_import( FILE * a_file );
  */
 nvIPFIX_data_record_list_t * nvipfix_import_file( const nvIPFIX_TCHAR * a_fileName );
 
+#ifdef NVIPFIX_DEF_ENABLE_NVC
 
-nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_TCHAR * a_fileName );
+/**
+ *
+ * @return
+ */
+nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host, 
+    const nvIPFIX_CHAR * a_login, const nvIPFIX_CHAR * a_password );
+
+#endif
 
 
 #endif /* __NVIPFIX_IMPORT_H */

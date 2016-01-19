@@ -5,7 +5,7 @@ DIR_SRC := ./src
 DIR_OBJ := ./obj
 DIR_DEP := ./obj
 DIR_BIN := ./bin
-DIR_CONFIG := ./src/config
+DIR_CONFIG := ./config
 
 # All of the sources participating in the build are defined here
 -include sources.mk
