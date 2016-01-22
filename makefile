@@ -1,4 +1,6 @@
-CC := gcc
+ifndef CC
+    CC := gcc
+endif
 RM := rm -rf
 CP := cp
 MD := mkdir -p

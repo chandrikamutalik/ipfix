@@ -10,7 +10,7 @@
     - GNU make
     - pkg-config
 
-  Run 'make all' command to build. Binary can be found in a 'bin' directory.
+  Run 'make all' ('gmake -f solaris.mak all' on Solaris) command to build. Binary can be found in a 'bin' directory.
   
   
 * Configuration
