@@ -50,7 +50,7 @@ void Usage()
 {
 	printf( "nvIPFIX %s\n", NVIPFIX_VERSION_STRING );
 	puts( "Usage: nvIPFIX [-fdatafile] <start_ts> <end_ts>" );
-	puts( "\tdatafile - JSON file" );
+	puts( "\tdatafile - JSON file (for debug purpose)" );
 	puts( "\tstart_ts/end_ts - ISO 8601 datetime (YYYY-MM-DDTHH:mm:SS)" );
 }
 

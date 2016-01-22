@@ -8,6 +8,7 @@
   Tools:
     - GCC 4
     - GNU make
+    - pkg-config
 
   Run 'make all' command to build. Binary can be found in a 'bin' directory.
   
@@ -37,5 +38,5 @@
 * Usage
 
   nvIPFIX [-fdatafile] <start_ts> <end_ts>" );
-    datafile - datafile (JSON) name
+    datafile - datafile (JSON) name (for debug purpose)
     start_ts/end_ts - ISO 8601 datetime (YYYY-MM-DDTHH:mm:SS)
