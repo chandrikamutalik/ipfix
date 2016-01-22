@@ -29,7 +29,7 @@
 
 #define NVIPFIX_T( a ) (a)
 
-#ifdef __linux__
+#if defined (__linux__) || defined (__unix)
 #define NVIPFIX_DEF_POSIX
 #define NVIPFIX_DEF_USE_INOTIFY
 #endif

@@ -31,6 +31,9 @@
 #ifdef __linux__
 #include <net/ethernet.h>
 #endif
+#ifdef __SVR4
+#include <sys/ethernet.h>
+#endif
 #endif
 
 
@@ -41,7 +44,10 @@
 #define	nvc_FIELD_FLAG_SET( flags, field ) (void)((flags) |= (field))
 
 
+#ifndef __SVR4
 typedef enum { B_FALSE, B_TRUE } boolean_t;
+typedef struct ether_addr ether_addr_t;
+#endif
 typedef uint64_t nvOS_time_t;
 typedef uint16_t nvc_pcl_vlan_id_t;
 typedef uint32_t nvc_pcl_vxlan_id_t;
@@ -50,7 +56,6 @@ typedef uint16_t nvc_ether_type_t;
 typedef uint16_t nvc_service_port_type_t;
 typedef uint8_t nvc_ip_protocol_t;
 typedef struct in6_addr in6_addr_t;
-typedef struct ether_addr ether_addr_t;
 typedef int64_t hrtime_t;
 
 typedef enum {

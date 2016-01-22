@@ -33,7 +33,7 @@ dirs:
 $(DIR_BIN)/nvIPFIX: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: Cross GCC Linker'
-	$(CC) -fopenmp -o $@ $(OBJS) $(USER_OBJS) $(LIBS)
+	$(CC) -fopenmp -o $@ $(OBJS) $(USER_OBJS) -L/usr/local/lib $(LIBS)
 	$(CP) $(DIR_CONFIG)/log4crc $(DIR_BIN)/
 	$(CP) $(DIR_CONFIG)/nvipfix.config $(DIR_BIN)/
 	@echo 'Finished building target: $@'
