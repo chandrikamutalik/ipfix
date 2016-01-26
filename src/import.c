@@ -243,9 +243,16 @@ nvIPFIX_data_record_list_t * nvipfix_import_file( const nvIPFIX_TCHAR * a_fileNa
 
 #ifdef NVIPFIX_DEF_ENABLE_NVC
 
+static int nvipfix_import_conn_stat_handler( void * arg, uint64_t fields, nvc_conn_t * conn_stat )
+{
+    
+}
+
 nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host, 
     const nvIPFIX_CHAR * a_login, const nvIPFIX_CHAR * a_password )
 {
+    NVIPFIX_INIT_ERROR( error );
+
     nvOS_io_t io = { 0 };
 
     if (a_host != NULL) {
@@ -260,6 +267,45 @@ nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host,
     else {
 		nvc_init( &io );
     }
+    
+    nvOS_result_t nvcResult;
+	int nvcError;
+
+	nvcError = nvc_connect( &io );
+
+    NVIPFIX_RAISE_ERROR_IF( nvcError != 0, error, NV_IPFIX_ERROR_CODE_NVC_CONNECT, Connect );    
+    
+	if (a_login != NULL && a_password != NULL) {
+		nvcError = nvc_authenticate( &io, a_login, a_password, &nvcResult );
+	} 
+    else {
+		char userName[nvc_PCL_NAME_LEN];
+		nvcError = nvc_check_uid( &io, userName, sizeof userName, &nvcResult );
+	}
+
+    NVIPFIX_RAISE_ERROR_IF( nvcError != 0, error, NV_IPFIX_ERROR_CODE_NVC_CONNECT, Auth );    
+    
+    nvIPFIX_data_record_list_t * result = NULL;
+
+    nvc_conn_t filter = { 0 };
+    uint64_t filterFields = 0;
+    nvc_format_args_t format = { 0 };
+    uint64_t formatFields = 0;
+    nvcError = nvc_show_conn_stat( &io, 
+        filterFields, &filter, 
+        formatFields, &format,
+        nvipfix_import_conn_stat_handler, result,
+		&nvcResult );
+
+    nvc_logout( &io );
+
+    NVIPFIX_ERROR_HANDLER( Auth );
+	nvc_disconnect( &io );
+    
+    NVIPFIX_ERROR_HANDLER( Connect );
+	nvc_done( &io );
+    
+    return result;
 }
 
 #endif

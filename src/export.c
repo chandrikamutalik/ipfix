@@ -21,6 +21,7 @@
 #include "fixbuf/public.h"
 
 #include "include/types.h"
+#include "include/error.h"
 #include "include/log.h"
 
 #include "include/export.h"

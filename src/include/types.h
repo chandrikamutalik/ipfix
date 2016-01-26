@@ -48,12 +48,6 @@
 #define NVIPFIX_ARGSF_IP_ADDRESS( a ) ((a).value >> 24) & 0xff, ((a).value >> 16) & 0xff, ((a).value >> 8) & 0xff, (a).value & 0xff
 #define NVIPFIX_ARGSF_MAC_ADDRESS( a ) (a).octets[0], (a).octets[1], (a).octets[2], (a).octets[3], (a).octets[4], (a).octets[5]
 
-#define NVIPFIX_INIT_ERROR( a_errorVar ) nvIPFIX_error_t a_errorVar = { .code = NV_IPFIX_ERROR_CODE_NONE, .data = NULL }
-#define NVIPFIX_INIT_ERROR_WITH_CODE( a_code ) { .code = a_code, .data = NULL }
-#define NVIPFIX_RETURN_ERROR( a_error, a_code ) a_error.code = a_code; return a_error;
-#define NVIPFIX_ERROR_HANDLER( a_name ) error ## a_name:
-#define NVIPFIX_RAISE_ERROR( a_error, a_code, a_name ) a_error.code = a_code; goto error ## a_name;
-
 
 enum {
 	NV_IPFIX_SIZE_STRING_IP_ADDRESS = 3 * 4 + 3 + 1
@@ -67,21 +61,6 @@ typedef uint16_t nvIPFIX_U16;
 typedef uint32_t nvIPFIX_U32;
 typedef uint64_t nvIPFIX_U64;
 typedef int64_t nvIPFIX_I64;
-
-typedef enum {
-	NV_IPFIX_ERROR_CODE_NONE = 0,
-	NV_IPFIX_ERROR_CODE_INVALID_ARGUMENTS = 0,
-	NV_IPFIX_ERROR_CODE_ALLOCATE_INFO_MODEL,
-	NV_IPFIX_ERROR_CODE_ALLOCATE_SESSION,
-	NV_IPFIX_ERROR_CODE_ALLOCATE_EXPORTER,
-	NV_IPFIX_ERROR_CODE_ALLOCATE_TEMPLATE,
-	NV_IPFIX_ERROR_CODE_UNKNOWN
-} nvIPFIX_ERROR_CODE;
-
-typedef struct {
-	nvIPFIX_ERROR_CODE code;
-	void * data;
-} nvIPFIX_error_t;
 
 typedef struct {
 	int year;

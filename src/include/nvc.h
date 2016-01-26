@@ -30,8 +30,7 @@
 #include <arpa/inet.h>
 #ifdef __linux__
 #include <net/ethernet.h>
-#endif
-#ifdef __SVR4
+#elif defined (__SVR4)
 #include <sys/ethernet.h>
 #endif
 #endif
@@ -164,6 +163,8 @@ void nvc_init( nvOS_io_t * io );
  * @param hostport
  */
 void nvc_init_net( nvOS_io_t * io, char * hostport );
+
+int nvc_connect( nvOS_io_t * io );
 
 /**
  *
