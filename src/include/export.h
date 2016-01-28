@@ -43,8 +43,8 @@ enum {
  * @param a_port
  * @param a_transport
  * @param a_data
- * @param startTs
- * @param endTs
+ * @param a_startTs
+ * @param a_endTs
  * @return
  */
 nvIPFIX_error_t nvipfix_export(

@@ -25,6 +25,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <time.h>
 
 
 #define NVIPFIX_T( a ) (a)
@@ -34,7 +35,7 @@
 #define NVIPFIX_DEF_USE_INOTIFY
 #endif
 
-#define NVIPFIX_NULL_ARGS_VOID_GUARD_1( a ) { if ((a) == NULL) return; }
+#define NVIPFIX_NULL_ARGS_GUARD_1_VOID( a ) { if ((a) == NULL) return; }
 #define NVIPFIX_NULL_ARGS_GUARD_1( a, result ) { if ((a) == NULL) return (result); }
 #define NVIPFIX_NULL_ARGS_GUARD_2( a, b, result ) { if ((a) == NULL || (b) == NULL) return (result); }
 
@@ -45,8 +46,16 @@
 #define NVIPFIX_MICROSECONDS_PER_MILLISECOND 1000
 #define NVIPFIX_NANOSECONDS_PER_MICROSECOND 1000
 
-#define NVIPFIX_ARGSF_IP_ADDRESS( a ) ((a).value >> 24) & 0xff, ((a).value >> 16) & 0xff, ((a).value >> 8) & 0xff, (a).value & 0xff
-#define NVIPFIX_ARGSF_MAC_ADDRESS( a ) (a).octets[0], (a).octets[1], (a).octets[2], (a).octets[3], (a).octets[4], (a).octets[5]
+#define NVIPFIX_TIMESPAN_INIT_FROM_SECONDS( a_varName, a_seconds ) \
+	nvIPFIX_timespan_t a_varName = { \
+			.microseconds = (a_seconds) *  NVIPFIX_MILLISECONDS_PER_SECOND * NVIPFIX_MICROSECONDS_PER_MILLISECOND, \
+			.hasValue = true }
+
+#define NVIPFIX_ARGSF_IP_ADDRESS( a ) \
+	((a).value >> 24) & 0xff, ((a).value >> 16) & 0xff, ((a).value >> 8) & 0xff, (a).value & 0xff
+
+#define NVIPFIX_ARGSF_MAC_ADDRESS( a ) \
+	(a).octets[0], (a).octets[1], (a).octets[2], (a).octets[3], (a).octets[4], (a).octets[5]
 
 
 enum {
@@ -260,13 +269,6 @@ bool nvipfix_parse_u64( const char * a_s, void * a_value );
 bool nvipfix_parse_ip_address( const char * a_s, void * a_value );
 
 /**
- *
- * @param a_address
- * @return
- */
-const nvIPFIX_CHAR * nvipfix_tostring_ip_address( const nvIPFIX_ip_address_t * a_address );
-
-/**
  * convert string to a MAC address (nvIPFIX_mac_address_t)
  * @param a_s
  * @param a_value
@@ -300,26 +302,47 @@ bool nvipfix_parse_timespan_microseconds( const char * a_s, void * a_value );
 
 /**
  *
+ * @param a_address
+ * @return
+ */
+const nvIPFIX_CHAR * nvipfix_ip_address_to_string( const nvIPFIX_ip_address_t * a_address );
+
+/**
+ *
  * @param a_datetime
  * @param a_epoch_year 1900 -
  * @param a_epoch_month 1 - 12
  * @return
  */
-nvIPFIX_U32 nvipfix_get_seconds_since_epoch( const nvIPFIX_datetime_t * a_datetime, int a_epoch_year, int a_epoch_month );
+nvIPFIX_U32 nvipfix_datetime_get_seconds_since_epoch( const nvIPFIX_datetime_t * a_datetime, int a_epoch_year, int a_epoch_month );
+
+/**
+ *
+ * @param a_datetime
+ * @param a_timespan
+ */
+time_t nvipfix_datetime_add_timespan( nvIPFIX_datetime_t * a_datetime, const nvIPFIX_timespan_t * a_timespan );
+
+/**
+ *
+ * @param a_datetime
+ * @return
+ */
+time_t nvipfix_datetime_to_ctime( const nvIPFIX_datetime_t * a_datetime );
 
 /**
  *
  * @param a_timespan
  * @return
  */
-nvIPFIX_I64 nvipfix_get_timespan_milliseconds( const nvIPFIX_timespan_t * a_timespan );
+nvIPFIX_I64 nvipfix_timespan_get_milliseconds( const nvIPFIX_timespan_t * a_timespan );
 
 /**
  *
  * @param a_timespan
  * @return
  */
-nvIPFIX_I64 nvipfix_get_timespan_microseconds( const nvIPFIX_timespan_t * a_timespan );
+nvIPFIX_I64 nvipfix_timespan_get_microseconds( const nvIPFIX_timespan_t * a_timespan );
 
 
 #endif /* __NVIPFIX_TYPES_H */

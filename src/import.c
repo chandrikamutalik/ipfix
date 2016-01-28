@@ -246,11 +246,12 @@ nvIPFIX_data_record_list_t * nvipfix_import_file( const nvIPFIX_TCHAR * a_fileNa
 
 static int nvipfix_import_conn_stat_handler( void * arg, uint64_t fields, nvc_conn_t * conn_stat )
 {
-    
+    NVIPFIX_TLOG_DEBUG( "%" PRId32 "-> %" PRId32, conn_stat->conn_client_switch_port, conn_stat->conn_server_switch_port );
 }
 
 nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host, 
-    const nvIPFIX_CHAR * a_login, const nvIPFIX_CHAR * a_password )
+    const nvIPFIX_CHAR * a_login, const nvIPFIX_CHAR * a_password,
+	const nvIPFIX_datetime_t * a_startTs, const nvIPFIX_datetime_t * a_endTs )
 {
     NVIPFIX_INIT_ERROR( error );
 
@@ -284,7 +285,7 @@ nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host,
 		nvcError = nvc_check_uid( &io, userName, sizeof userName, &nvcResult );
 	}
 
-    NVIPFIX_RAISE_ERROR_IF( nvcError != 0, error, NV_IPFIX_ERROR_CODE_NVC_CONNECT, Auth );    
+    NVIPFIX_RAISE_ERROR_IF( nvcError != 0, error, NV_IPFIX_ERROR_CODE_NVC_AUTH, Auth );
     
     nvIPFIX_data_record_list_t * result = NULL;
 

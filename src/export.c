@@ -96,12 +96,12 @@ nvIPFIX_error_t nvipfix_export(
 		const nvIPFIX_datetime_t * a_startTs,
 		const nvIPFIX_datetime_t * a_endTs )
 {
-	NVIPFIX_INIT_ERROR( error );
+	NVIPFIX_ERROR_INIT( error );
 
 	fbInfoModel_t * infoModel = fbInfoModelAlloc();
 
 	if (infoModel == NULL) {
-		NVIPFIX_RETURN_ERROR( error, NV_IPFIX_ERROR_CODE_ALLOCATE_INFO_MODEL );
+		NVIPFIX_ERROR_RETURN( error, NV_IPFIX_ERROR_CODE_ALLOCATE_INFO_MODEL );
 	}
 
 	fbInfoElement_t ieLatency = FB_IE_INIT(
@@ -160,22 +160,22 @@ nvIPFIX_error_t nvipfix_export(
 					if (fbSessionExportTemplates( session, &fbError )) {
 						if (fBufSetInternalTemplate( buffer, templateId, &fbError )) {
 							if (fBufSetExportTemplate( buffer, templateIdExt, &fbError )) {
-								nvIPFIX_U32 startTs = nvipfix_get_seconds_since_epoch( a_startTs, 1970, 1 );
-								nvIPFIX_U32 endTs = nvipfix_get_seconds_since_epoch( a_endTs, 1970, 1 );
+								nvIPFIX_U32 startTs = nvipfix_datetime_get_seconds_since_epoch( a_startTs, 1970, 1 );
+								nvIPFIX_U32 endTs = nvipfix_datetime_get_seconds_since_epoch( a_endTs, 1970, 1 );
 
 								nvIPFIX_data_record_t * record = a_data->head;
 
 								while (record != NULL) {
 									nvIPFIX_export_data_t data = { 0 };
 									data.flowStartSeconds = record->flowStart.hasValue
-											? nvipfix_get_seconds_since_epoch( &(record->flowStart), 1970, 1 )
+											? nvipfix_datetime_get_seconds_since_epoch( &(record->flowStart), 1970, 1 )
 													: startTs;
 
 									data.flowEndSeconds = record->flowEnd.hasValue
-											? nvipfix_get_seconds_since_epoch( &(record->flowEnd), 1970, 1 )
+											? nvipfix_datetime_get_seconds_since_epoch( &(record->flowEnd), 1970, 1 )
 													: endTs;
 
-									data.flowDurationMilliseconds = nvipfix_get_timespan_milliseconds( &record->flowDuration );
+									data.flowDurationMilliseconds = nvipfix_timespan_get_milliseconds( &record->flowDuration );
 									data.ingressInterface = record->ingressInterface;
 									data.egressInterface = record->egressInterface;
 									data.vlanId = record->vlanId;
@@ -192,7 +192,7 @@ nvIPFIX_error_t nvipfix_export(
 									data.protocolIdentifier = record->protocol;
 									data.tcpControlBits = (uint8_t)record->tcpControlBits;
 									data.ethernetType = (uint16_t)record->ethernetType;
-									data.latencyMicroseconds = nvipfix_get_timespan_microseconds( &record->latency );
+									data.latencyMicroseconds = nvipfix_timespan_get_microseconds( &record->latency );
 
 									NVIPFIX_TLOG_DEBUG( "%d.%d.%d.%d:%d -> %d.%d.%d.%d:%d %d %d-%d %d %02x:%02x:%02x:%02x:%02x:%02x",
 											NVIPFIX_ARGSF_IP_ADDRESS( record->sourceIp ), record->sourcePort,

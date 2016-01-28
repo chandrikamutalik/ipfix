@@ -42,6 +42,9 @@
 
 #define	nvc_FIELD_FLAG_SET( flags, field ) (void)((flags) |= (field))
 
+#define nvc_conn_args_start_time ((uint64_t)1 << 1)
+#define nvc_conn_args_end_time ((uint64_t)1 << 2)
+
 
 #ifndef __SVR4
 typedef enum { B_FALSE, B_TRUE } boolean_t;
@@ -164,6 +167,11 @@ void nvc_init( nvOS_io_t * io );
  */
 void nvc_init_net( nvOS_io_t * io, char * hostport );
 
+/**
+ *
+ * @param io
+ * @return
+ */
 int nvc_connect( nvOS_io_t * io );
 
 /**

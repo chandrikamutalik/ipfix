@@ -38,6 +38,23 @@
 	*((a_type *)a_value) = (a_type)lValue; \
 	return true; }
 
+#define NVIPFIX_TM_INIT_FROM_DT( a_varName, a_datetime ) \
+	struct tm a_varName = { 0 };	\
+	a_varName.tm_year = a_datetime->year - 1900;	\
+	a_varName.tm_mon = a_datetime->month - 1;	\
+	a_varName.tm_mday = a_datetime->day;	\
+	a_varName.tm_hour = a_datetime->hours;	\
+	a_varName.tm_min = a_datetime->minutes;	\
+	a_varName.tm_sec = a_datetime->seconds
+
+#define NVIPFIX_DT_FROM_TM( a_datetime, a_tm ) \
+	a_datetime->year = a_tm.tm_year + 1900;	\
+	a_datetime->month = a_tm.tm_mon + 1;	\
+	a_datetime->day = a_tm.tm_mday;	\
+	a_datetime->hours = a_tm.tm_hour;	\
+	a_datetime->minutes = a_tm.tm_min;	\
+	a_datetime->seconds = a_tm.tm_sec
+
 
 enum {
 	SizeofStringList = sizeof (nvIPFIX_string_list_t),
@@ -385,21 +402,6 @@ bool nvipfix_parse_ip_address( const char * a_s, void * a_value )
 	return result;
 }
 
-const nvIPFIX_CHAR * nvipfix_tostring_ip_address( const nvIPFIX_ip_address_t * a_address )
-{
-	NVIPFIX_NULL_ARGS_GUARD_1( a_address, NULL );
-
-	char buffer[NV_IPFIX_SIZE_STRING_IP_ADDRESS];
-	nvIPFIX_CHAR * result = NULL;
-
-	if (snprintf( buffer, NV_IPFIX_SIZE_STRING_IP_ADDRESS, "%d.%d.%d.%d", NVIPFIX_ARGSF_IP_ADDRESS( *a_address ) ) > 0) {
-		buffer[NV_IPFIX_SIZE_STRING_IP_ADDRESS - 1] = '\0';
-		result = nvipfix_string_duplicate( buffer );
-	}
-
-	return result;
-}
-
 bool nvipfix_parse_mac_address( const char * a_s, void * a_value )
 {
 	bool result = false;
@@ -535,7 +537,22 @@ bool nvipfix_parse_timespan_microseconds( const char * a_s, void * a_value )
 	return result;
 }
 
-nvIPFIX_U32 nvipfix_get_seconds_since_epoch( const nvIPFIX_datetime_t * a_datetime, int a_epoch_year, int a_epoch_month )
+const nvIPFIX_CHAR * nvipfix_ip_address_to_string( const nvIPFIX_ip_address_t * a_address )
+{
+	NVIPFIX_NULL_ARGS_GUARD_1( a_address, NULL );
+
+	char buffer[NV_IPFIX_SIZE_STRING_IP_ADDRESS];
+	nvIPFIX_CHAR * result = NULL;
+
+	if (snprintf( buffer, NV_IPFIX_SIZE_STRING_IP_ADDRESS, "%d.%d.%d.%d", NVIPFIX_ARGSF_IP_ADDRESS( *a_address ) ) > 0) {
+		buffer[NV_IPFIX_SIZE_STRING_IP_ADDRESS - 1] = '\0';
+		result = nvipfix_string_duplicate( buffer );
+	}
+
+	return result;
+}
+
+nvIPFIX_U32 nvipfix_datetime_get_seconds_since_epoch( const nvIPFIX_datetime_t * a_datetime, int a_epoch_year, int a_epoch_month )
 {
 	nvIPFIX_U32 result = 0;
 
@@ -544,20 +561,37 @@ nvIPFIX_U32 nvipfix_get_seconds_since_epoch( const nvIPFIX_datetime_t * a_dateti
 	epoch.tm_mon = a_epoch_month - 1;
 	epoch.tm_mday = 1;
 
-	struct tm datetime = { 0 };
-	datetime.tm_year = a_datetime->year - 1900;
-	datetime.tm_mon = a_datetime->month - 1;
-	datetime.tm_mday = a_datetime->day;
-	datetime.tm_hour = a_datetime->hours;
-	datetime.tm_min = a_datetime->minutes;
-	datetime.tm_sec = a_datetime->seconds;
+	NVIPFIX_TM_INIT_FROM_DT( datetime, a_datetime );
 
 	result = difftime( mktime( &datetime ), mktime( &epoch ) );
 
 	return result;
 }
 
-nvIPFIX_I64 nvipfix_get_timespan_milliseconds( const nvIPFIX_timespan_t * a_timespan )
+time_t nvipfix_datetime_to_ctime( const nvIPFIX_datetime_t * a_datetime )
+{
+	NVIPFIX_NULL_ARGS_GUARD_1( a_datetime, (time_t)-1 );
+
+	NVIPFIX_TM_INIT_FROM_DT( datetime, a_datetime );
+
+	return mktime( &datetime );
+}
+
+time_t nvipfix_datetime_add_timespan( nvIPFIX_datetime_t * a_datetime, const nvIPFIX_timespan_t * a_timespan )
+{
+	NVIPFIX_NULL_ARGS_GUARD_2( a_datetime, a_timespan, (time_t)-1 );
+
+	NVIPFIX_TM_INIT_FROM_DT( datetime, a_datetime );
+	datetime.tm_sec += a_timespan->microseconds / (NVIPFIX_MICROSECONDS_PER_MILLISECOND * NVIPFIX_MILLISECONDS_PER_SECOND);
+
+	time_t result = mktime( &datetime );
+
+	NVIPFIX_DT_FROM_TM( a_datetime, datetime );
+
+	return result;
+}
+
+nvIPFIX_I64 nvipfix_timespan_get_milliseconds( const nvIPFIX_timespan_t * a_timespan )
 {
 	nvIPFIX_I64 result = 0;
 
@@ -570,7 +604,7 @@ nvIPFIX_I64 nvipfix_get_timespan_milliseconds( const nvIPFIX_timespan_t * a_time
 	return result;
 }
 
-nvIPFIX_I64 nvipfix_get_timespan_microseconds( const nvIPFIX_timespan_t * a_timespan )
+nvIPFIX_I64 nvipfix_timespan_get_microseconds( const nvIPFIX_timespan_t * a_timespan )
 {
 	nvIPFIX_I64 result = 0;
 

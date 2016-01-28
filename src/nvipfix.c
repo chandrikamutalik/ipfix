@@ -20,6 +20,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 
 
 #include "include/types.h"
@@ -61,10 +62,12 @@ int main( int argc, char * argv[] )
 		return NV_IPFIX_RETURN_CODE_ARGS_ERROR;
 	}
 
-	size_t argIndexTs = 2;
+	size_t argIndexTs = 1;
+	bool useFile = false;
 
 	if (strncmp( "-f", argv[1], 2 ) == 0) {
-		argIndexTs = 1;
+		argIndexTs = 2;
+		useFile = true;
 	}
 
 	nvIPFIX_datetime_t startTs = { 0 };
@@ -78,11 +81,22 @@ int main( int argc, char * argv[] )
 		return NV_IPFIX_RETURN_CODE_ARGS_ERROR;
 	}
 
+	nvIPFIX_switch_info_t * switchInfo = nvipfix_config_switch_info_get();
+
 	size_t collectorsCount;
 	nvIPFIX_collector_info_t * collectors = nvipfix_config_collectors_get( &collectorsCount );
 
 	if (collectors != NULL) {
-		nvIPFIX_data_record_list_t * dataRecords = nvipfix_import_file( argv[1] + 2 );
+		nvIPFIX_data_record_list_t * dataRecords = NULL;
+
+		if (useFile) {
+			dataRecords = nvipfix_import_file( argv[1] + 2 );
+		}
+		else {
+#ifdef NVIPFIX_DEF_ENABLE_NVC
+			dataRecords = nvipfix_import_nvc( switchInfo->host, switchInfo->login, switchInfo->password, &startTs, &endTs );
+#endif
+		}
 
 		if (dataRecords != NULL) {
 			for (size_t i = 0; i < collectorsCount; i++) {
@@ -103,6 +117,8 @@ int main( int argc, char * argv[] )
 		puts( "no collector(s) defined" );
 		return NV_IPFIX_RETURN_CODE_CONFIGURATION_ERROR;
 	}
+
+	nvipfix_config_switch_info_free( switchInfo );
 
 	return NV_IPFIX_RETURN_CODE_CONFIGURATION_ERROR;
 }
