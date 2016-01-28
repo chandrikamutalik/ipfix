@@ -25,12 +25,12 @@
 #include "log.h"
 
 
-#define NVIPFIX_INIT_ERROR( a_errorVar ) nvIPFIX_error_t a_errorVar = { .code = NV_IPFIX_ERROR_CODE_NONE, .data = NULL }
-#define NVIPFIX_INIT_ERROR_WITH_CODE( a_code ) { .code = a_code, .data = NULL }
-#define NVIPFIX_RETURN_ERROR( a_error, a_code ) a_error.code = a_code; return a_error;
+#define NVIPFIX_ERROR_INIT( a_errorVar ) nvIPFIX_error_t a_errorVar = { .code = NV_IPFIX_ERROR_CODE_NONE, .data = NULL }
+#define NVIPFIX_ERROR_INIT_WITH_CODE( a_code ) { .code = a_code, .data = NULL }
+#define NVIPFIX_ERROR_RETURN( a_error, a_code ) a_error.code = a_code; return a_error;
 #define NVIPFIX_ERROR_HANDLER( a_name ) error ## a_name:
-#define NVIPFIX_RAISE_ERROR( a_error, a_code, a_name ) a_error.code = a_code; goto error ## a_name;
-#define NVIPFIX_RAISE_ERROR_IF( a_condition, a_error, a_code, a_name ) if ((a_condition)) { a_error.code = a_code; goto error ## a_name; }
+#define NVIPFIX_ERROR_RAISE( a_error, a_code, a_name ) a_error.code = a_code; goto error ## a_name;
+#define NVIPFIX_ERROR_RAISE_IF( a_condition, a_error, a_code, a_name ) if ((a_condition)) { a_error.code = a_code; goto error ## a_name; }
 
 
 typedef enum {

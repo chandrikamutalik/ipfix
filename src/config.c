@@ -240,7 +240,7 @@ nvIPFIX_collector_info_t * nvipfix_config_collectors_get( size_t * a_count )
 
 void nvipfix_config_collectors_free( nvIPFIX_collector_info_t * a_collectors )
 {
-	NVIPFIX_NULL_ARGS_VOID_GUARD_1( a_collectors );
+	NVIPFIX_NULL_ARGS_GUARD_1_VOID( a_collectors );
 
 	free( a_collectors );
 }
@@ -481,7 +481,7 @@ nvIPFIX_switch_info_t * nvipfix_config_switch_info_get()
 
 void nvipfix_config_switch_info_free( nvIPFIX_switch_info_t * a_switchInfo )
 {
-	NVIPFIX_NULL_ARGS_VOID_GUARD_1( a_switchInfo );
+	NVIPFIX_NULL_ARGS_GUARD_1_VOID( a_switchInfo );
 
 	free( (void *)a_switchInfo->name );
 	free( (void *)a_switchInfo->host );

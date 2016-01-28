@@ -67,7 +67,7 @@ nvIPFIX_data_record_list_t * nvipfix_data_list_add_copy( nvIPFIX_data_record_lis
 
 void nvipfix_data_list_free( nvIPFIX_data_record_list_t * a_list )
 {
-	NVIPFIX_NULL_ARGS_VOID_GUARD_1( a_list );
+	NVIPFIX_NULL_ARGS_GUARD_1_VOID( a_list );
 
 	nvIPFIX_data_record_t * record = a_list->head;
 
