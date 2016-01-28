@@ -253,7 +253,7 @@ nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host,
     const nvIPFIX_CHAR * a_login, const nvIPFIX_CHAR * a_password,
 	const nvIPFIX_datetime_t * a_startTs, const nvIPFIX_datetime_t * a_endTs )
 {
-    NVIPFIX_INIT_ERROR( error );
+    NVIPFIX_ERROR_INIT( error );
 
     nvOS_io_t io = { 0 };
 
@@ -264,7 +264,7 @@ nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host,
         ERR_load_BIO_strings();
         OpenSSL_add_all_algorithms();
         
-        nvc_init_net( &io, a_host );
+        nvc_init_net( &io, NVIPFIX_CHAR_PTR_TO_CCHAR_PTR( a_host ) );
     }
     else {
 		nvc_init( &io );
@@ -275,17 +275,20 @@ nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host,
 
 	nvcError = nvc_connect( &io );
 
-    NVIPFIX_RAISE_ERROR_IF( nvcError != 0, error, NV_IPFIX_ERROR_CODE_NVC_CONNECT, Connect );    
+    NVIPFIX_ERROR_RAISE_IF( nvcError != 0, error, NV_IPFIX_ERROR_CODE_NVC_CONNECT, Connect );
     
 	if (a_login != NULL && a_password != NULL) {
-		nvcError = nvc_authenticate( &io, a_login, a_password, &nvcResult );
+		nvcError = nvc_authenticate( &io,
+				NVIPFIX_CHAR_PTR_TO_CCHAR_PTR( a_login ),
+				NVIPFIX_CHAR_PTR_TO_CCHAR_PTR( a_password ),
+				&nvcResult );
 	} 
     else {
 		char userName[nvc_PCL_NAME_LEN];
 		nvcError = nvc_check_uid( &io, userName, sizeof userName, &nvcResult );
 	}
 
-    NVIPFIX_RAISE_ERROR_IF( nvcError != 0, error, NV_IPFIX_ERROR_CODE_NVC_AUTH, Auth );
+    NVIPFIX_ERROR_RAISE_IF( nvcError != 0, error, NV_IPFIX_ERROR_CODE_NVC_AUTH, Auth );
     
     nvIPFIX_data_record_list_t * result = NULL;
 

@@ -57,6 +57,8 @@
 #define NVIPFIX_ARGSF_MAC_ADDRESS( a ) \
 	(a).octets[0], (a).octets[1], (a).octets[2], (a).octets[3], (a).octets[4], (a).octets[5]
 
+#define NVIPFIX_CHAR_PTR_TO_CCHAR_PTR( a_ptr ) (char *)(a_ptr)
+
 
 enum {
 	NV_IPFIX_SIZE_STRING_IP_ADDRESS = 3 * 4 + 3 + 1
