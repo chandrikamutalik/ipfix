@@ -20,6 +20,7 @@
 
 #include <stdbool.h>
 #include <stdio.h>
+#include <wchar.h>
 
 #include "log4c.h"
 
@@ -31,6 +32,8 @@
 static void nvipfix_log_init();
 static void nvipfix_log_cleanup();
 static void nvipfix_log( int a_priority, const char * a_fmt, va_list * args );
+static void nvipfix_tlog( int a_priority, const nvIPFIX_TCHAR * a_fmt, va_list * args );
+static void nvipfix_log_message( int a_priority, const char * a_message );
 
 
 enum {
@@ -45,7 +48,9 @@ void nvipfix_tlog_debug( const nvIPFIX_TCHAR * a_fmt, ... )
 	va_list args;
 	va_start( args, a_fmt );
 
-	nvipfix_log( LOG4C_PRIORITY_DEBUG, a_fmt, &args );
+	nvipfix_tlog( LOG4C_PRIORITY_DEBUG, a_fmt, &args );
+
+	va_end( args );
 }
 
 void nvipfix_log_debug( const nvIPFIX_CHAR * a_fmt, ... )
@@ -54,6 +59,8 @@ void nvipfix_log_debug( const nvIPFIX_CHAR * a_fmt, ... )
 	va_start( args, a_fmt );
 
 	nvipfix_log( LOG4C_PRIORITY_DEBUG, a_fmt, &args );
+
+	va_end( args );
 }
 
 void nvipfix_tlog_info( const nvIPFIX_TCHAR * a_fmt, ... )
@@ -61,7 +68,9 @@ void nvipfix_tlog_info( const nvIPFIX_TCHAR * a_fmt, ... )
 	va_list args;
 	va_start( args, a_fmt );
 
-	nvipfix_log( LOG4C_PRIORITY_INFO, a_fmt, &args );
+	nvipfix_tlog( LOG4C_PRIORITY_INFO, a_fmt, &args );
+
+	va_end( args );
 }
 
 void nvipfix_log_info( const nvIPFIX_CHAR * a_fmt, ... )
@@ -70,6 +79,8 @@ void nvipfix_log_info( const nvIPFIX_CHAR * a_fmt, ... )
 	va_start( args, a_fmt );
 
 	nvipfix_log( LOG4C_PRIORITY_INFO, a_fmt, &args );
+
+	va_end( args );
 }
 
 void nvipfix_tlog_warning( const nvIPFIX_TCHAR * a_fmt, ... )
@@ -77,7 +88,9 @@ void nvipfix_tlog_warning( const nvIPFIX_TCHAR * a_fmt, ... )
 	va_list args;
 	va_start( args, a_fmt );
 
-	nvipfix_log( LOG4C_PRIORITY_WARN, a_fmt, &args );
+	nvipfix_tlog( LOG4C_PRIORITY_WARN, a_fmt, &args );
+
+	va_end( args );
 }
 
 void nvipfix_log_warning( const nvIPFIX_CHAR * a_fmt, ... )
@@ -86,6 +99,8 @@ void nvipfix_log_warning( const nvIPFIX_CHAR * a_fmt, ... )
 	va_start( args, a_fmt );
 
 	nvipfix_log( LOG4C_PRIORITY_WARN, a_fmt, &args );
+
+	va_end( args );
 }
 
 void nvipfix_tlog_error( const nvIPFIX_TCHAR * a_fmt, ... )
@@ -93,7 +108,9 @@ void nvipfix_tlog_error( const nvIPFIX_TCHAR * a_fmt, ... )
 	va_list args;
 	va_start( args, a_fmt );
 
-	nvipfix_log( LOG4C_PRIORITY_ERROR, a_fmt, &args );
+	nvipfix_tlog( LOG4C_PRIORITY_ERROR, a_fmt, &args );
+
+	va_end( args );
 }
 
 void nvipfix_log_error( const nvIPFIX_CHAR * a_fmt, ... )
@@ -102,6 +119,8 @@ void nvipfix_log_error( const nvIPFIX_CHAR * a_fmt, ... )
 	va_start( args, a_fmt );
 
 	nvipfix_log( LOG4C_PRIORITY_ERROR, a_fmt, &args );
+
+	va_end( args );
 }
 
 void nvipfix_log_init()
@@ -126,13 +145,35 @@ void nvipfix_log_cleanup()
 
 void nvipfix_log( int a_priority, const char * a_fmt, va_list * args )
 {
-	nvipfix_log_init();
-
 	char buffer[SizeofVariadicBufferSize + 1];
 
 	if (vsnprintf( buffer, sizeof buffer, a_fmt, *args ) > 0) {
-		log4c_category_log( Category, a_priority, buffer );
+		nvipfix_log_message( a_priority, buffer );
 	}
+}
 
-	va_end( *args );
+void nvipfix_tlog( int a_priority, const nvIPFIX_TCHAR * a_fmt, va_list * args )
+{
+#ifdef NVIPFIX_DEF_UNICODE
+	wchar_t buffer[SizeofVariadicBufferSize + 1];
+
+	if (vswprintf( buffer, (sizeof buffer) / sizeof (wchar_t), a_fmt, *args ) > 0) {
+		char bufferA[SizeofVariadicBufferSize + 1];
+		mbstate_t state = { 0 };
+
+		const wchar_t * bufferPtr = buffer;
+
+		if (wcsrtombs( bufferA, &bufferPtr, sizeof bufferA, &state ) > 0) {
+			nvipfix_log_message( a_priority, bufferA );
+		}
+	}
+#else
+	nvipfix_log( a_priority, a_fmt, args );
+#endif
+}
+
+void nvipfix_log_message( int a_priority, const char * a_message )
+{
+	nvipfix_log_init();
+	log4c_category_log( Category, a_priority, "%s", a_message );
 }

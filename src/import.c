@@ -21,6 +21,7 @@
 #include <stddef.h>
 #include <stdbool.h>
 #include <string.h>
+#include <inttypes.h>
 
 #include "openssl/ssl.h"
 
@@ -114,11 +115,11 @@ nvIPFIX_data_record_list_t * nvipfix_import( FILE * a_file )
 		} while (!feof( a_file ));
 
 		if (buffer != NULL) {
-			nvipfix_tlog_debug( NVIPFIX_T( "%s: data len = %d" ), __func__, strlen( buffer ) );
+			NVIPFIX_LOG_DEBUG0( "data len = %d", strlen( buffer ) );
 			nvIPFIX_string_list_t * tokens = nvipfix_string_split( buffer, "[]" );
 
 			if (tokens != NULL) {
-				nvipfix_tlog_debug( NVIPFIX_T( "%s: tokens count = %d" ), __func__, tokens->count );
+				NVIPFIX_LOG_DEBUG0( "tokens count = %d", tokens->count );
 
 				nvIPFIX_string_list_item_t * token = tokens->head;
 
@@ -131,7 +132,7 @@ nvIPFIX_data_record_list_t * nvipfix_import( FILE * a_file )
 							nvIPFIX_string_list_t * records = nvipfix_string_split( token->value, "{" );
 
 							if (records != NULL) {
-								nvipfix_tlog_debug( NVIPFIX_T( "%s: records count = %d" ), __func__, records->count );
+								NVIPFIX_LOG_DEBUG0( "records count = %d", records->count );
 
 								nvIPFIX_string_list_item_t * record = records->head;
 
@@ -172,8 +173,8 @@ nvIPFIX_data_record_list_t * nvipfix_import( FILE * a_file )
 																			((char *)&data) + importItem->offset );
 																}
 																else {
-																	nvipfix_tlog_warning(
-																			NVIPFIX_T( "%s: unknown item = '%s'" ),
+																	nvipfix_log_warning(
+																			"%s: unknown item = '%s'",
 																			__func__, itemName );
 																}
 															}
@@ -209,23 +210,23 @@ nvIPFIX_data_record_list_t * nvipfix_import( FILE * a_file )
 				nvipfix_string_list_free( tokens, true );
 			}
 			else {
-				nvipfix_tlog_error( NVIPFIX_T( "%s: unable to tokenize data file" ), __func__ );
+				nvipfix_log_error( "%s: unable to tokenize data file", __func__ );
 			}
 
 			free( buffer );
 		}
 		else {
-			nvipfix_tlog_error( NVIPFIX_T( "%s: memory allocation failed" ), __func__ );
+			nvipfix_log_error( "%s: memory allocation failed", __func__ );
 		}
 	}
 	else {
-		nvipfix_tlog_error( NVIPFIX_T( "%s: FILE is null" ), __func__ );
+		nvipfix_log_error( "%s: FILE is null", __func__ );
 	}
 
 	return result;
 }
 
-nvIPFIX_data_record_list_t * nvipfix_import_file( const nvIPFIX_TCHAR * a_fileName )
+nvIPFIX_data_record_list_t * nvipfix_import_file( const nvIPFIX_CHAR * a_fileName )
 {
 	nvIPFIX_data_record_list_t * result = NULL;
 
@@ -236,7 +237,7 @@ nvIPFIX_data_record_list_t * nvipfix_import_file( const nvIPFIX_TCHAR * a_fileNa
 		fclose( dataFile );
 	}
 	else {
-		nvipfix_tlog_error( NVIPFIX_T( "%s: unable to open file '%s'" ), __func__, a_fileName );
+		nvipfix_log_error( "%s: unable to open file '%s'", __func__, a_fileName );
 	}
 
 	return result;
@@ -244,9 +245,11 @@ nvIPFIX_data_record_list_t * nvipfix_import_file( const nvIPFIX_TCHAR * a_fileNa
 
 #ifdef NVIPFIX_DEF_ENABLE_NVC
 
-static int nvipfix_import_conn_stat_handler( void * arg, uint64_t fields, nvc_conn_t * conn_stat )
+static int nvipfix_import_conn_stat_handler( void * a_arg, uint64_t a_fields, nvc_conn_t * a_connStat )
 {
-    NVIPFIX_TLOG_DEBUG( "%" PRId32 "-> %" PRId32, conn_stat->conn_client_switch_port, conn_stat->conn_server_switch_port );
+    NVIPFIX_LOG_DEBUG( "%" PRId32 "-> %" PRId32, a_connStat->conn_client_switch_port, a_connStat->conn_server_switch_port );
+
+    return 0;
 }
 
 nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host, 
@@ -274,8 +277,7 @@ nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host,
 	int nvcError;
 
 	nvcError = nvc_connect( &io );
-
-    NVIPFIX_ERROR_RAISE_IF( nvcError != 0, error, NV_IPFIX_ERROR_CODE_NVC_CONNECT, Connect );
+    NVIPFIX_ERROR_RAISE_IF( nvcError != 0, error, NV_IPFIX_ERROR_CODE_NVC_CONNECT, Connect, "nvc_connect: %d", nvcError );
     
 	if (a_login != NULL && a_password != NULL) {
 		nvcError = nvc_authenticate( &io,
@@ -288,13 +290,13 @@ nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host,
 		nvcError = nvc_check_uid( &io, userName, sizeof userName, &nvcResult );
 	}
 
-    NVIPFIX_ERROR_RAISE_IF( nvcError != 0, error, NV_IPFIX_ERROR_CODE_NVC_AUTH, Auth );
-    
+    NVIPFIX_ERROR_RAISE_IF( nvcError != 0, error, NV_IPFIX_ERROR_CODE_NVC_AUTH, Auth, "nvc_authenticate/nvc_check_uid: %d", nvcError );
+
     nvIPFIX_data_record_list_t * result = NULL;
 
-    nvc_conn_t filter = { 0 };
+    nvc_conn_t filter = { { 0 } };
     uint64_t filterFields = 0;
-    nvc_format_args_t format = { 0 };
+    nvc_format_args_t format = { { 0 } };
     uint64_t formatFields = 0;
     nvcError = nvc_show_conn_stat( &io, 
         filterFields, &filter, 

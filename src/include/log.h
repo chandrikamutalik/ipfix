@@ -26,10 +26,18 @@
 
 
 #ifdef NVIPFIX_DEF_DEBUG
-#define NVIPFIX_TLOG_DEBUG( a_fmt, ... ) nvipfix_tlog_debug( NVIPFIX_T( "%s: " a_fmt ), __func__, __VA_ARGS__ )
-#else
-#define NVIPFIX_TLOG_DEBUG( a_fmt, ... )
-#endif
+#define NVIPFIX_TLOG_DEBUG0( a_fmt, ... ) nvipfix_tlog_debug( NVIPFIX_T( "" NVIPFIX_F_S ": " a_fmt ), __func__, __VA_ARGS__ )
+#define NVIPFIX_LOG_DEBUG0( a_fmt, ... ) nvipfix_log_debug( "%s: " a_fmt, __func__, __VA_ARGS__ )
+#else // !NVIPFIX_DEF_DEBUG
+#define NVIPFIX_TLOG_DEBUG0( a_fmt, ... )
+#define NVIPFIX_LOG_DEBUG0( a_fmt, ... )
+#endif // NVIPFIX_DEF_DEBUG
+
+#define NVIPFIX_TLOG_DEBUG( a_fmt, ... ) nvipfix_tlog_debug( NVIPFIX_T( "" NVIPFIX_F_S ": " a_fmt ), __func__, __VA_ARGS__ )
+#define NVIPFIX_LOG_DEBUG( a_fmt, ... ) nvipfix_log_debug( "%s: " a_fmt, __func__, __VA_ARGS__ )
+#define NVIPFIX_TLOG_INFO( a_fmt, ... ) nvipfix_tlog_info( NVIPFIX_T( a_fmt ), __VA_ARGS__ )
+#define NVIPFIX_TLOG_WARNING( a_fmt, ... ) nvipfix_tlog_warning( NVIPFIX_T( a_fmt ), __VA_ARGS__ )
+#define NVIPFIX_TLOG_ERROR( a_fmt, ... ) nvipfix_tlog_error( NVIPFIX_T( a_fmt ), __VA_ARGS__ )
 
 
 /**
