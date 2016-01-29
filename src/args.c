@@ -18,4 +18,66 @@
  *
  */
 
+#include <stddef.h>
+#include <stdbool.h>
+
+#include "include/error.h"
 #include "include/args.h"
+
+
+#define NVIPFIX_ARG_ITEM_WITH_FLAGS( a_key, a_field, a_parseValue, a_flags ) { .key = a_key, \
+	.offset = offsetof( nvIPFIX_args_t, a_field ), .parseValue = a_parseValue, .flags = a_flags }
+
+#define NVIPFIX_ARG_ITEM( a_key, a_field, a_parseValue ) \
+		NVIPFIX_ARG_ITEM_WITH_FLAGS( a_key, a_field, a_parseValue, NV_IPFIX_ARG_FLAG_NONE )
+
+
+typedef enum {
+	NV_IPFIX_ARG_FLAG_NONE = 0,
+	NV_IPFIX_ARG_FLAG_MANDATORY = 1,
+} nvIPFIX_ARG_FLAGS;
+
+typedef struct {
+	const char * key;
+	size_t offset;
+	bool (* parseValue)( const char *, void * );
+	nvIPFIX_ARG_FLAGS flags;
+} nvIPFIX_arg_t;
+
+
+static bool nvipfix_args_parse_data_filename( const char *, void * );
+
+
+static const nvIPFIX_arg_t Items[] = {
+		NVIPFIX_ARG_ITEM( "-f", dataFilename, nvipfix_args_parse_data_filename ),
+		NVIPFIX_ARG_ITEM_WITH_FLAGS( NULL, startTs, nvipfix_args_parse_data_filename, NV_IPFIX_ARG_FLAG_MANDATORY ),
+		NVIPFIX_ARG_ITEM_WITH_FLAGS( NULL, endTs, nvipfix_args_parse_data_filename, NV_IPFIX_ARG_FLAG_MANDATORY ),
+		{ NULL }
+};
+
+static const size_t ItemsCount = (sizeof Items) / sizeof (nvIPFIX_arg_t);
+
+
+nvIPFIX_error_t nvipfix_args_parse( char * a_argv[], size_t a_argc, nvIPFIX_args_t * a_args )
+{
+	NVIPFIX_ERROR_INIT( error );
+
+	if (a_argv == NULL || a_args == NULL) {
+		NVIPFIX_ERROR_RAISE( error, NV_IPFIX_ERROR_CODE_INVALID_ARGUMENTS, Main );
+	}
+
+	for (size_t i = 1; i < a_argc; i++) {
+
+	}
+
+	NVIPFIX_ERROR_HANDLER( Main );
+
+	return error;
+}
+
+bool nvipfix_args_parse_data_filename( const char * s, void * value )
+{
+	bool result = false;
+
+	return result;
+}
