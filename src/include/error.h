@@ -30,7 +30,10 @@
 #define NVIPFIX_ERROR_RETURN( a_error, a_code ) a_error.code = a_code; return a_error;
 #define NVIPFIX_ERROR_HANDLER( a_name ) error ## a_name:
 #define NVIPFIX_ERROR_RAISE( a_error, a_code, a_name ) a_error.code = a_code; goto error ## a_name;
-#define NVIPFIX_ERROR_RAISE_IF( a_condition, a_error, a_code, a_name ) if ((a_condition)) { a_error.code = a_code; goto error ## a_name; }
+#define NVIPFIX_ERROR_RAISE_IF( a_condition, a_error, a_code, a_name, a_fmt, ... ) \
+		if ((a_condition)) { a_error.code = a_code; \
+			if (a_fmt != NULL) { nvipfix_tlog_error( NVIPFIX_T( "%s: " a_fmt ), __func__, __VA_ARGS__ ); } \
+		goto error ## a_name; }
 
 
 typedef enum {

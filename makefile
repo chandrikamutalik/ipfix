@@ -6,7 +6,7 @@ endif
 
 CFLAGS :=
 
-ifdef DEBUG
+ifeq ($(DEBUG), 1)
 	CFLAGS := $(CFLAGS) -DNVIPFIX_DEF_DEBUG
 endif
 
@@ -24,9 +24,13 @@ DIR_CONFIG := ./config
 -include subdir.mk
 -include objects.mk
 
-ifdef USE_NVC
+ifeq ($(USE_NVC), 1)
 	CFLAGS := $(CFLAGS) -DNVIPFIX_DEF_ENABLE_NVC
 	LIBS := $(LIBS) -lssl -lcrypto -lnvOS
+endif
+
+ifeq ($(UNICODE), 1)
+	CFLAGS := $(CFLAGS) -DNVIPFIX_DEF_UNICODE
 endif
 
 ifneq ($(MAKECMDGOALS),clean)

@@ -76,12 +76,16 @@ int main( int argc, char * argv[] )
 	if (!nvipfix_parse_datetime_iso8601( argv[argIndexTs], &startTs )
 			|| !nvipfix_parse_datetime_iso8601( argv[argIndexTs + 1], &endTs )) {
 
-		puts( "invalid arguments" );
+		nvipfix_log_error( "invalid arguments" );
 		Usage();
 		return NV_IPFIX_RETURN_CODE_ARGS_ERROR;
 	}
 
 	nvIPFIX_switch_info_t * switchInfo = nvipfix_config_switch_info_get();
+	nvipfix_log_debug( "switch: host = %s, login = %s, password = %s",
+			switchInfo->host,
+			switchInfo->login,
+			switchInfo->password );
 
 	size_t collectorsCount;
 	nvIPFIX_collector_info_t * collectors = nvipfix_config_collectors_get( &collectorsCount );
@@ -109,16 +113,16 @@ int main( int argc, char * argv[] )
 			}
 		}
 		else {
-			puts( "no data" );
+			nvipfix_log_error( "no data" );
 			return NV_IPFIX_RETURN_CODE_DATA_ERROR;
 		}
 	}
 	else {
-		puts( "no collector(s) defined" );
+		nvipfix_log_error( "no collector(s) defined" );
 		return NV_IPFIX_RETURN_CODE_CONFIGURATION_ERROR;
 	}
 
 	nvipfix_config_switch_info_free( switchInfo );
 
-	return NV_IPFIX_RETURN_CODE_CONFIGURATION_ERROR;
+	return NV_IPFIX_RETURN_CODE_OK;
 }

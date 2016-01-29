@@ -28,8 +28,6 @@
 #include <time.h>
 
 
-#define NVIPFIX_T( a ) (a)
-
 #if defined (__linux__) || defined (__unix)
 #define NVIPFIX_DEF_POSIX
 #define NVIPFIX_DEF_USE_INOTIFY
@@ -64,8 +62,23 @@ enum {
 	NV_IPFIX_SIZE_STRING_IP_ADDRESS = 3 * 4 + 3 + 1
 };
 
+
 typedef char nvIPFIX_CHAR;
+
+#ifdef NVIPFIX_DEF_UNICODE
+typedef wchar_t nvIPFIX_TCHAR;
+#define NVIPFIX_F_WS "%ls"
+#define NVIPFIX_F_S "%s"
+#define NVIPFIX_F_T "%ls"
+#define NVIPFIX_T( a ) (L ## a)
+#else // !NVIPFIX_DEF_UNICODE
 typedef char nvIPFIX_TCHAR;
+#define NVIPFIX_F_WS "%ls"
+#define NVIPFIX_F_S "%s"
+#define NVIPFIX_F_T "%s"
+#define NVIPFIX_T( a ) (a)
+#endif // NVIPFIX_DEF_UNICODE
+
 typedef uint8_t nvIPFIX_OCTET;
 typedef unsigned char nvIPFIX_BYTE;
 typedef uint16_t nvIPFIX_U16;

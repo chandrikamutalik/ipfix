@@ -31,6 +31,9 @@
 #include "include/config.h"
 
 
+#define NVIPFIX_CONFIG_DEFAULT_PORT_STR "4739"
+#define NVIPFIX_CONFIG_DEFAULT_TRANSPORT NV_IPFIX_TRANSPORT_UDP
+
 #define NVIPFIX_CONFIG_SETTING( a_name, a_id, a_parentId, a_value, a_offset, a_parseValue ) \
 	{ .name = a_name, .id = a_id, .parentId = a_parentId, .value = a_value, .offset = a_offset, .parseValue = a_parseValue }
 
@@ -137,25 +140,25 @@ static nvIPFIX_collector_info_list_item_t * CollectorList = NULL;
 
 void nvipfix_config_init()
 {
-	nvipfix_config_cleanup();
-	nvipfix_config_read();
+	static volatile bool isInitialized = false;
 
-	atexit( nvipfix_config_cleanup );
+	#pragma omp critical (nvipfixCritical_ConfigInit)
+	{
+		if (!isInitialized) {
+			nvipfix_config_cleanup();
+			nvipfix_config_read();
+
+			atexit( nvipfix_config_cleanup );
+			isInitialized = true;
+		}
+	}
 }
 
 nvIPFIX_collector_info_t * nvipfix_config_collectors_get( size_t * a_count )
 {
 	NVIPFIX_NULL_ARGS_GUARD_1( a_count, NULL );
 
-	static volatile bool isInitialized = false;
-
-	#pragma omp critical (nvipfixCritical_ConfigInit)
-	{
-		if (!isInitialized) {
-			nvipfix_config_init();
-			isInitialized = true;
-		}
-	}
+	nvipfix_config_init();
 
 	size_t count = 0;
 	char * result = NULL;
@@ -169,7 +172,7 @@ nvIPFIX_collector_info_t * nvipfix_config_collectors_get( size_t * a_count )
 			collector = collector->next;
 		}
 
-		nvipfix_tlog_debug( NVIPFIX_T( "%s: collectors count = %d" ), __func__, count );
+		NVIPFIX_LOG_DEBUG( "collectors count = %d", count );
 
 		size_t bufSize = count * SizeofCollectorInfo;
 		size_t bufIndex = 0;
@@ -247,7 +250,7 @@ void nvipfix_config_collectors_free( nvIPFIX_collector_info_t * a_collectors )
 
 void nvipfix_config_read()
 {
-	nvipfix_tlog_debug( NVIPFIX_T( "reading configuration file" ) );
+	NVIPFIX_LOG_DEBUG( "%s", "reading configuration file" );
 	FILE * configFile = fopen( ConfigFileName, "r" );
 
 	if (configFile != NULL) {
@@ -269,7 +272,7 @@ void nvipfix_config_read()
 					nvIPFIX_string_list_t * tokens = nvipfix_string_split( buffer, " \t\n\r" );
 
 					if (tokens == NULL) {
-						nvipfix_tlog_error( NVIPFIX_T( "%s: unable to tokenize a line" ), __func__ );
+						nvipfix_log_error( "%s: unable to tokenize a line", __func__ );
 						break;
 					}
 
@@ -305,17 +308,22 @@ void nvipfix_config_read()
 								}
 							}
 							else {
-								nvipfix_tlog_error( NVIPFIX_T( "%s: unknown setting '%s', %d" ), __func__, token->value, line );
+								nvipfix_log_error( "%s: unknown setting '%s', %d", __func__, token->value, line );
 							}
 						}
 						else if (tokenIndex == 2) {
-							if (parentId == SettingIdCollector && setting != NULL) {
-								setting->parseValue( token->value, ((char *)&collector) + setting->offset );
+							if (setting != NULL) {
+								if (parentId == SettingIdCollector) {
+									setting->parseValue( token->value, ((char *)&collector) + setting->offset );
+								}
+								else if (parentId == 0) {
+									setting->parseValue( token->value, setting->value );
+								}
 							}
 						}
 
 						if (tokenIndex > 2) {
-							nvipfix_tlog_error( NVIPFIX_T( "%s: bad configuration. line %d" ), __func__, line );
+							nvipfix_log_error( "%s: bad configuration. line %d", __func__, line );
 						}
 
 						token = token->next;
@@ -324,7 +332,7 @@ void nvipfix_config_read()
 					nvipfix_string_list_free( tokens, true );
 				}
 				else {
-					nvipfix_tlog_debug( NVIPFIX_T( "line is empty. %d" ), line );
+					NVIPFIX_TLOG_DEBUG0( "line is empty. %d", line );
 				}
 
 				line++;
@@ -332,13 +340,13 @@ void nvipfix_config_read()
 		}
 
 		if (parentId != 0) {
-			nvipfix_tlog_error( NVIPFIX_T( "%s: '}' expected" ), __func__ );
+			nvipfix_log_error( "%s: '}' expected", __func__ );
 		}
 
 		fclose( configFile );
 	}
 	else {
-		nvipfix_tlog_error( NVIPFIX_T( "%s: unable to open configuration file" ), __func__ );
+		nvipfix_log_error( "%s: unable to open configuration file", __func__ );
 	}
 }
 
@@ -376,7 +384,7 @@ void nvipfix_config_cleanup()
 void nvipfix_config_add_collector( nvIPFIX_collector_info_t * a_collector )
 {
 	if (a_collector->host == NULL && !a_collector->ipAddress.hasValue) {
-		nvipfix_tlog_error( NVIPFIX_T( "%s: collector '%s'. host or IP address expected" ), __func__, a_collector->name );
+		nvipfix_log_error( "%s: collector '%s'. host or IP address expected", __func__, a_collector->name );
 		return;
 	}
 
@@ -385,11 +393,11 @@ void nvipfix_config_add_collector( nvIPFIX_collector_info_t * a_collector )
 
 	if (listItem != NULL) {
 		if (a_collector->port == NULL) {
-			a_collector->port = nvipfix_string_duplicate( "4739" );
+			a_collector->port = nvipfix_string_duplicate( NVIPFIX_CONFIG_DEFAULT_PORT_STR );
 		}
 
 		if (a_collector->transport == NV_IPFIX_TRANSPORT_UNDEFINED) {
-			a_collector->transport = NV_IPFIX_TRANSPORT_UDP;
+			a_collector->transport = NVIPFIX_CONFIG_DEFAULT_TRANSPORT;
 		}
 
 		nvIPFIX_collector_info_t * collector = (nvIPFIX_collector_info_t *)(((char *)listItem) + SizeofCollectorInfoListItem);
@@ -399,7 +407,7 @@ void nvipfix_config_add_collector( nvIPFIX_collector_info_t * a_collector )
 		CollectorList = listItem;
 	}
 	else {
-		nvipfix_tlog_error( NVIPFIX_T( "%s: unable to allocate memory" ), __func__ );
+		nvipfix_log_error( "%s: unable to allocate memory", __func__ );
 	}
 }
 
@@ -467,6 +475,8 @@ const nvIPFIX_setting_t * nvipfix_config_get_setting( const char * a_name, int a
 
 nvIPFIX_switch_info_t * nvipfix_config_switch_info_get()
 {
+	nvipfix_config_init();
+
 	nvIPFIX_switch_info_t * result = malloc( sizeof (nvIPFIX_switch_info_t) );
 
 	if (result != NULL) {

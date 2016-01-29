@@ -40,7 +40,7 @@ nvIPFIX_data_record_list_t * nvipfix_import( FILE * a_file );
  * @param a_fileName filename
  * @return
  */
-nvIPFIX_data_record_list_t * nvipfix_import_file( const nvIPFIX_TCHAR * a_fileName );
+nvIPFIX_data_record_list_t * nvipfix_import_file( const nvIPFIX_CHAR * a_fileName );
 
 #ifdef NVIPFIX_DEF_ENABLE_NVC
 
