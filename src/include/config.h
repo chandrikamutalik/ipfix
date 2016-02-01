@@ -55,6 +55,7 @@ typedef struct {
 	nvIPFIX_ip_address_t ipAddress;	//!< collector's IP address
 	nvIPFIX_OCTET dscp;
 	nvIPFIX_TRANSPORT transport;	//!< collector's transport
+	nvIPFIX_hashtable_key_t key;
 } nvIPFIX_collector_info_t;
 
 

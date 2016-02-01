@@ -38,6 +38,8 @@
 #define NVIPFIX_TLOG_INFO( a_fmt, ... ) nvipfix_tlog_info( NVIPFIX_T( a_fmt ), __VA_ARGS__ )
 #define NVIPFIX_TLOG_WARNING( a_fmt, ... ) nvipfix_tlog_warning( NVIPFIX_T( a_fmt ), __VA_ARGS__ )
 #define NVIPFIX_TLOG_ERROR( a_fmt, ... ) nvipfix_tlog_error( NVIPFIX_T( a_fmt ), __VA_ARGS__ )
+#define NVIPFIX_TLOG_ERROR_IF( a_condition, a_fmt, ... ) if ((a_condition)) { \
+	nvipfix_tlog_error( NVIPFIX_T( a_fmt ), __VA_ARGS__ ); }
 
 
 /**

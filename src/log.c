@@ -29,8 +29,8 @@
 #include "include/log.h"
 
 
-static void nvipfix_log_init();
-static void nvipfix_log_cleanup();
+static void nvipfix_log_init( void );
+static void nvipfix_log_cleanup( void );
 static void nvipfix_log( int a_priority, const char * a_fmt, va_list * args );
 static void nvipfix_tlog( int a_priority, const nvIPFIX_TCHAR * a_fmt, va_list * args );
 static void nvipfix_log_message( int a_priority, const char * a_message );
@@ -123,7 +123,7 @@ void nvipfix_log_error( const nvIPFIX_CHAR * a_fmt, ... )
 	va_end( args );
 }
 
-void nvipfix_log_init()
+void nvipfix_log_init( void )
 {
 	static volatile bool isInitialized = false;
 
@@ -138,7 +138,7 @@ void nvipfix_log_init()
 	}
 }
 
-void nvipfix_log_cleanup()
+void nvipfix_log_cleanup( void )
 {
 	log4c_fini();
 }

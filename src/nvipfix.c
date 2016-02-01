@@ -18,6 +18,9 @@
  *
  */
 
+#ifndef NVIPFIX_DEF_TEST
+
+
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
@@ -126,3 +129,6 @@ int main( int argc, char * argv[] )
 
 	return NV_IPFIX_RETURN_CODE_OK;
 }
+
+
+#endif // NVIPFIX_DEF_TEST

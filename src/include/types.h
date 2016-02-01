@@ -57,6 +57,13 @@
 
 #define NVIPFIX_CHAR_PTR_TO_CCHAR_PTR( a_ptr ) (char *)(a_ptr)
 
+#define NVIPFIX_HASHTABLE8_ADD( a_table, a_key, a_keyLen, a_value ) \
+	nvipfix_hashtable8_add( a_table, a_key, a_keyLen, a_value, NULL, NULL )
+
+#define NVIPFIX_STRLEN_CHECKED( a_str ) ((a_str) != NULL ? strlen( a_str ) : 0)
+#define NVIPFIX_STREQUAL_CHECKED( a_str1, a_str2 ) ((a_str1) == NULL ? ((a_str2) == NULL) \
+	: ((a_str2) != NULL && strcmp( a_str1, a_str2 ) == 0) )
+
 
 enum {
 	NV_IPFIX_SIZE_STRING_IP_ADDRESS = 3 * 4 + 3 + 1
@@ -140,6 +147,28 @@ typedef struct {
 	size_t count;
 } nvIPFIX_string_list_t;
 
+typedef struct {
+	const nvIPFIX_BYTE * value;
+	size_t len;
+} nvIPFIX_hashtable_key_t;
+
+typedef struct _nvIPFIX_hashnode_t {
+	const nvIPFIX_BYTE * key;
+	size_t keyLen;
+	const void * value;
+	struct _nvIPFIX_hashnode_t * lt;
+	struct _nvIPFIX_hashnode_t * gt;
+} nvIPFIX_hashnode_t;
+
+typedef void (* nvIPFIX_hashtable_free_ft)( const void * );
+typedef const void * (* nvIPFIX_hashtable_copy_ft)( const void * );
+
+typedef struct {
+	nvIPFIX_hashnode_t nodes[UINT8_MAX];
+	nvIPFIX_hashtable_free_ft freeValue;
+	nvIPFIX_hashtable_copy_ft copyValue;
+} nvIPFIX_hashtable8_t;
+
 
 /**
  * add string to a list
@@ -163,6 +192,35 @@ nvIPFIX_string_list_t * nvipfix_string_list_add_copy( nvIPFIX_string_list_t * a_
  * @param a_shouldFreeValues flag indicates if strings in a list should be freed too
  */
 void nvipfix_string_list_free( nvIPFIX_string_list_t * a_list, bool a_shouldFreeValues );
+
+/**
+ *
+ * @param a_hashtable
+ * @param a_key
+ * @param keyLen
+ * @param a_value
+ * @param a_copyF
+ * @param a_freeF
+ * @return
+ */
+nvIPFIX_hashtable8_t * nvipfix_hashtable8_add( nvIPFIX_hashtable8_t * a_hashtable,
+		const void * a_key, size_t a_keyLen, const void * a_value,
+		const nvIPFIX_hashtable_copy_ft a_copyF, const nvIPFIX_hashtable_free_ft a_freeF );
+
+/**
+ *
+ * @param a_hashtable
+ * @param a_key
+ * @param a_keyLen
+ */
+const void * nvipfix_hashtable8_get( nvIPFIX_hashtable8_t * a_hashtable,
+		const void * a_key, size_t a_keyLen );
+
+/**
+ *
+ * @param a_hashtable
+ */
+void nvipfix_hashtable8_free( nvIPFIX_hashtable8_t * a_hashtable );
 
 /**
  * split a string

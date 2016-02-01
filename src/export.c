@@ -18,6 +18,8 @@
  *
  */
 
+#include <stdbool.h>
+
 #include "fixbuf/public.h"
 
 #include "include/types.h"
@@ -62,6 +64,13 @@ typedef struct {
     uint8_t tcpControlBits;
 } nvIPFIX_export_data_t;
 
+typedef struct {
+	uint64_t exportedMessageTotalCount;
+	uint64_t exportedFlowRecordTotalCount;
+} nvIPFIX_export_stats_data_t;
+
+
+static const char * InfoElementLatencyName = NVIPFIX_IE_LATENCY_NAME;
 
 static fbInfoElementSpec_t Template[] = {
 		NVIPFIX_TEMPLATE_ITEM( "flowStartSeconds" ),
@@ -70,7 +79,7 @@ static fbInfoElementSpec_t Template[] = {
 		NVIPFIX_TEMPLATE_ITEM( "transportOctetDeltaCount" ),
 		NVIPFIX_TEMPLATE_ITEM( "initiatorOctets" ),
 		NVIPFIX_TEMPLATE_ITEM( "responderOctets" ),
-		NVIPFIX_TEMPLATE_ITEM( "latencyMicroseconds" ),
+		NVIPFIX_TEMPLATE_ITEM( NVIPFIX_IE_LATENCY_NAME ),
 		NVIPFIX_TEMPLATE_ITEM( "flowDurationMilliseconds" ),
 		NVIPFIX_TEMPLATE_ITEM( "ingressInterface" ),
 		NVIPFIX_TEMPLATE_ITEM( "egressInterface" ),
@@ -87,6 +96,63 @@ static fbInfoElementSpec_t Template[] = {
 		FB_IESPEC_NULL
 };
 
+static fbInfoElementSpec_t StatsTemplate[] = {
+		NVIPFIX_TEMPLATE_ITEM( "exportedMessageTotalCount" ),
+		NVIPFIX_TEMPLATE_ITEM( "exportedFlowRecordTotalCount" ),
+		FB_IESPEC_NULL
+};
+
+static fbInfoModel_t * InfoModel = NULL;
+
+
+static bool nvipfix_export_init( void );
+static void nvipfix_export_cleanup( void );
+
+
+bool nvipfix_export_init( void )
+{
+	static volatile bool isInitialized = false;
+
+	#pragma omp critical (nvipfixCritical_ExportInit)
+	{
+		if (!isInitialized) {
+			NVIPFIX_ERROR_INIT( error );
+
+			InfoModel = fbInfoModelAlloc();
+			NVIPFIX_ERROR_RAISE_IF( InfoModel == NULL, error, NV_IPFIX_ERROR_CODE_ALLOCATE_INFO_MODEL, InfoModel, \
+					"%s", "fbInfoModelAlloc fails" );
+
+			fbInfoElement_t ieLatency = FB_IE_INIT(
+					InfoElementLatencyName,
+					NVIPFIX_PEN,
+					NV_IPFIX_IE_LATENCY,
+					8,
+					FB_IE_F_ENDIAN | FB_IE_F_REVERSIBLE | FB_UNITS_MICROSECONDS );
+
+			fbInfoModelAddElement( InfoModel, &ieLatency );
+
+			atexit( nvipfix_export_cleanup );
+			isInitialized = true;
+
+			NVIPFIX_ERROR_RAISE( error, NV_IPFIX_ERROR_CODE_NONE, None );
+
+			fbInfoModelFree( InfoModel );
+
+			NVIPFIX_ERROR_HANDLER( InfoModel );
+
+			NVIPFIX_ERROR_HANDLER( None );
+		}
+	}
+
+	return isInitialized;
+}
+
+void nvipfix_export_cleanup( void )
+{
+	if (InfoModel != NULL) {
+		fbInfoModelFree( InfoModel );
+	}
+}
 
 nvIPFIX_error_t nvipfix_export(
 		const nvIPFIX_CHAR * a_host,
@@ -98,22 +164,9 @@ nvIPFIX_error_t nvipfix_export(
 {
 	NVIPFIX_ERROR_INIT( error );
 
-	fbInfoModel_t * infoModel = fbInfoModelAlloc();
+	nvipfix_export_init();
 
-	if (infoModel == NULL) {
-		NVIPFIX_ERROR_RETURN( error, NV_IPFIX_ERROR_CODE_ALLOCATE_INFO_MODEL );
-	}
-
-	fbInfoElement_t ieLatency = FB_IE_INIT(
-			"latencyMicroseconds",
-			NVIPFIX_PEN,
-			NV_IPFIX_IE_LATENCY,
-			8,
-			FB_IE_F_ENDIAN | FB_IE_F_REVERSIBLE | FB_UNITS_MICROSECONDS );
-
-	fbInfoModelAddElement( infoModel, &ieLatency );
-
-	fbSession_t * session = fbSessionAlloc( infoModel );
+	fbSession_t * session = fbSessionAlloc( InfoModel );
 
 	if (session != NULL) {
 		fbConnSpec_t connSpec = { 0 };
@@ -140,7 +193,7 @@ nvIPFIX_error_t nvipfix_export(
 		//fbExporter_t * exporter = fbExporterAllocFile( "./ipfix.out" );
 
 		if (exporter != NULL) {
-			fbTemplate_t * template = fbTemplateAlloc( infoModel );
+			fbTemplate_t * template = fbTemplateAlloc( InfoModel );
 
 			if (template != NULL) {
 				GError * fbError = NULL;
@@ -241,8 +294,6 @@ nvIPFIX_error_t nvipfix_export(
 	else {
 		error.code = NV_IPFIX_ERROR_CODE_ALLOCATE_SESSION;
 	}
-
-	fbInfoModelFree( infoModel );
 
 	return error;
 }

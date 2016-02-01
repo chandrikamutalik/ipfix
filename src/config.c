@@ -34,6 +34,8 @@
 #define NVIPFIX_CONFIG_DEFAULT_PORT_STR "4739"
 #define NVIPFIX_CONFIG_DEFAULT_TRANSPORT NV_IPFIX_TRANSPORT_UDP
 
+#define NVIPFIX_FORMAT_COLLECTOR_KEY "{%s}:{%s}"
+
 #define NVIPFIX_CONFIG_SETTING( a_name, a_id, a_parentId, a_value, a_offset, a_parseValue ) \
 	{ .name = a_name, .id = a_id, .parentId = a_parentId, .value = a_value, .offset = a_offset, .parseValue = a_parseValue }
 
@@ -61,9 +63,9 @@ typedef struct _nvIPFIX_setting_t {
 } nvIPFIX_setting_t;
 
 
-static void nvipfix_config_init();
-static void nvipfix_config_read();
-static void nvipfix_config_cleanup();
+static void nvipfix_config_init( void );
+static void nvipfix_config_read( void );
+static void nvipfix_config_cleanup( void );
 static void nvipfix_config_add_collector( nvIPFIX_collector_info_t * );
 
 static bool nvipfix_config_is_empty_line( char * a_line );
@@ -138,7 +140,7 @@ static const size_t SettingsCount = ((sizeof Settings) / sizeof (nvIPFIX_setting
 static nvIPFIX_collector_info_list_item_t * CollectorList = NULL;
 
 
-void nvipfix_config_init()
+void nvipfix_config_init( void )
 {
 	static volatile bool isInitialized = false;
 
@@ -181,11 +183,13 @@ nvIPFIX_collector_info_t * nvipfix_config_collectors_get( size_t * a_count )
 		collector = CollectorList;
 
 		while (collector != NULL) {
-			size_t nameLen = strlen( collector->current->name ) + 1;
-			size_t hostLen = strlen( collector->current->host ) + 1;
-			size_t portLen = strlen( collector->current->port ) + 1;
+			size_t nameLen = NVIPFIX_STRLEN_CHECKED( collector->current->name ) + 1;
+			size_t hostLen = NVIPFIX_STRLEN_CHECKED( collector->current->host ) + 1;
+			size_t portLen = NVIPFIX_STRLEN_CHECKED( collector->current->port ) + 1;
+			size_t keyLen = snprintf( NULL, 0,
+					NVIPFIX_FORMAT_COLLECTOR_KEY, collector->current->host, collector->current->port );
 
-			bufSize += nameLen + hostLen + portLen;
+			bufSize += nameLen + hostLen + portLen + (keyLen + 1);
 			void * ptr = realloc( result, bufSize );
 
 			if (ptr == NULL) {
@@ -195,8 +199,9 @@ nvIPFIX_collector_info_t * nvipfix_config_collectors_get( size_t * a_count )
 			}
 
 			result = ptr;
+			nvIPFIX_collector_info_t * collectorPtr = (nvIPFIX_collector_info_t *)(result + bufIndex);
 
-			memcpy( result + bufIndex, collector->current, SizeofCollectorInfo );
+			memcpy( collectorPtr, collector->current, SizeofCollectorInfo );
 
 			if (nameLen > 1) {
 				memcpy( result + bufTop, collector->current->name, nameLen );
@@ -205,7 +210,7 @@ nvIPFIX_collector_info_t * nvipfix_config_collectors_get( size_t * a_count )
 				*(result + bufTop) = '\0';
 			}
 
-			((nvIPFIX_collector_info_t *)(result + bufIndex))->name = result + bufTop;
+			collectorPtr->name = result + bufTop;
 
 			bufTop += nameLen;
 
@@ -216,7 +221,7 @@ nvIPFIX_collector_info_t * nvipfix_config_collectors_get( size_t * a_count )
 				*(result + bufTop) = '\0';
 			}
 
-			((nvIPFIX_collector_info_t *)(result + bufIndex))->host = result + bufTop;
+			collectorPtr->host = result + bufTop;
 
 			bufTop += hostLen;
 
@@ -227,7 +232,14 @@ nvIPFIX_collector_info_t * nvipfix_config_collectors_get( size_t * a_count )
 				*(result + bufTop) = '\0';
 			}
 
-			((nvIPFIX_collector_info_t *)(result + bufIndex))->port = result + bufTop;
+			collectorPtr->port = result + bufTop;
+
+			bufTop += portLen;
+
+			collectorPtr->key.value = (const nvIPFIX_BYTE *)(result + bufTop);
+			collectorPtr->key.len = keyLen;
+			snprintf( (char *)collectorPtr->key.value, keyLen + 1,
+					NVIPFIX_FORMAT_COLLECTOR_KEY, collector->current->host, collector->current->port );
 
 			bufTop = bufSize;
 			bufIndex += SizeofCollectorInfo;
@@ -248,7 +260,7 @@ void nvipfix_config_collectors_free( nvIPFIX_collector_info_t * a_collectors )
 	free( a_collectors );
 }
 
-void nvipfix_config_read()
+void nvipfix_config_read( void )
 {
 	NVIPFIX_LOG_DEBUG( "%s", "reading configuration file" );
 	FILE * configFile = fopen( ConfigFileName, "r" );
@@ -350,7 +362,7 @@ void nvipfix_config_read()
 	}
 }
 
-void nvipfix_config_cleanup()
+void nvipfix_config_cleanup( void )
 {
 	nvipfix_tlog_debug( NVIPFIX_T( "nvipfix_config_cleanup" ) );
 

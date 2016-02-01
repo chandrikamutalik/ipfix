@@ -31,6 +31,8 @@
 
 #define NVIPFIX_PEN 47123
 
+#define NVIPFIX_IE_LATENCY_NAME "latencyMicroseconds"
+
 
 enum {
 	NV_IPFIX_IE_LATENCY = 1

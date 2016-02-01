@@ -6,10 +6,6 @@ endif
 
 CFLAGS :=
 
-ifeq ($(DEBUG), 1)
-	CFLAGS := $(CFLAGS) -DNVIPFIX_DEF_DEBUG
-endif
-
 RM := rm -rf
 CP := cp
 MD := mkdir -p
@@ -24,6 +20,10 @@ DIR_CONFIG := ./config
 -include subdir.mk
 -include objects.mk
 
+ifeq ($(DEBUG), 1)
+	CFLAGS := $(CFLAGS) -DNVIPFIX_DEF_DEBUG
+endif
+
 ifeq ($(USE_NVC), 1)
 	CFLAGS := $(CFLAGS) -DNVIPFIX_DEF_ENABLE_NVC
 	LIBS := $(LIBS) -lssl -lcrypto -lnvOS
@@ -31,6 +31,10 @@ endif
 
 ifeq ($(UNICODE), 1)
 	CFLAGS := $(CFLAGS) -DNVIPFIX_DEF_UNICODE
+endif
+
+ifeq ($(TEST), 1)
+	CFLAGS := $(CFLAGS) -DNVIPFIX_DEF_TEST
 endif
 
 ifneq ($(MAKECMDGOALS),clean)

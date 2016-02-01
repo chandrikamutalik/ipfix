@@ -26,6 +26,8 @@
 #include <stdio.h>
 
 #include "include/types.h"
+#include "include/error.h"
+#include "include/log.h"
 
 
 #define NVIPFIX_PARSE_UINT( a_s, a_value, a_type ) { \
@@ -133,6 +135,193 @@ void nvipfix_string_list_free( nvIPFIX_string_list_t * a_list, bool a_shouldFree
 		}
 
 		free( a_list );
+	}
+}
+
+static uint8_t nvipfix_hashtable8_hash( const void * a_value, size_t a_len )
+{
+	NVIPFIX_NULL_ARGS_GUARD_1( a_value, 0 );
+
+	uint8_t result = 0;
+
+	const char * value = a_value;
+
+	for (size_t i = 0; i < a_len; i++) {
+		result = result ^ (value[i] + i);
+	}
+
+	return result;
+}
+
+static nvIPFIX_hashnode_t * nvipfix_hashtable8_get_or_add( nvIPFIX_hashtable8_t * a_hashtable,
+		const void * a_key, size_t a_keyLen, bool a_shouldAdd )
+{
+	NVIPFIX_NULL_ARGS_GUARD_2( a_hashtable, a_key, NULL );
+
+	uint8_t keyHash = nvipfix_hashtable8_hash( a_key, a_keyLen );
+	nvIPFIX_hashnode_t * node = &(a_hashtable->nodes[keyHash]);
+	nvIPFIX_hashnode_t * * parentNodePtr = NULL;
+
+	if (node->keyLen != 0) {
+		NVIPFIX_LOG_DEBUG0( "%s", "root node not empty" );
+
+		while (node != NULL) {
+			int cmp = a_keyLen - node->keyLen;
+
+			if (cmp == 0) {
+				cmp = memcmp( a_key, node->key, a_keyLen );
+
+				if (cmp == 0) {
+					break;
+				}
+			}
+
+			if (cmp < 0) {
+				parentNodePtr = &(node->lt);
+				node = node->lt;
+			}
+			else {
+				parentNodePtr = &(node->gt);
+				node = node->gt;
+			}
+		}
+	}
+	else if (a_shouldAdd) {
+		NVIPFIX_LOG_DEBUG0( "%s", "root node empty. adding..." );
+
+		node->key = malloc( a_keyLen );
+
+		if (node->key != NULL) {
+			node->keyLen = a_keyLen;
+			memcpy( (void *)node->key, a_key, a_keyLen );
+		}
+		else {
+			node = NULL;
+			a_shouldAdd = false;
+		}
+	}
+	else {
+		NVIPFIX_LOG_DEBUG0( "%s", "root node empty" );
+
+		node = NULL;
+	}
+
+	if (node == NULL && a_shouldAdd) {
+		NVIPFIX_LOG_DEBUG0( "%s", "node empty. adding..." );
+
+		node = malloc( sizeof (nvIPFIX_hashnode_t) + a_keyLen );
+
+		if (node != NULL) {
+			node->gt = NULL;
+			node->lt = NULL;
+			node->keyLen = a_keyLen;
+			node->key = (const void *)(((char *)node) + sizeof (nvIPFIX_hashnode_t));
+			NVIPFIX_LOG_DEBUG0( "%s", "copying key..." );
+			memcpy( (void *)node->key, a_key, a_keyLen );
+			node->value = NULL;
+
+			if (parentNodePtr != NULL) {
+				*parentNodePtr = node;
+			}
+		}
+	}
+
+	return node;
+}
+
+nvIPFIX_hashtable8_t * nvipfix_hashtable8_add( nvIPFIX_hashtable8_t * a_hashtable,
+		const void * a_key, size_t a_keyLen, const void * a_value,
+		const nvIPFIX_hashtable_copy_ft a_copyF, const nvIPFIX_hashtable_free_ft a_freeF )
+{
+	NVIPFIX_NULL_ARGS_GUARD_1( a_key, NULL );
+
+	nvIPFIX_hashtable8_t * result = a_hashtable;
+
+	if (result == NULL) {
+		NVIPFIX_LOG_DEBUG0( "%s", "new table" );
+		result = malloc( sizeof (nvIPFIX_hashtable8_t) );
+
+		if (result != NULL) {
+			memset( result, 0, sizeof (nvIPFIX_hashtable8_t) );
+			result->copyValue = a_copyF;
+			result->freeValue = a_freeF;
+		}
+		else {
+			NVIPFIX_LOG_DEBUG0( "%s", "new table malloc failed" );
+		}
+	}
+
+	NVIPFIX_NULL_ARGS_GUARD_1( result, NULL );
+
+	nvIPFIX_hashnode_t * node = nvipfix_hashtable8_get_or_add( result, a_key, a_keyLen, true );
+
+	if (node != NULL) {
+		if (node->value != NULL && result->freeValue != NULL) {
+			result->freeValue( node->value );
+		}
+
+		if (result->copyValue != NULL) {
+			node->value = result->copyValue( a_value );
+		}
+		else {
+			node->value = a_value;
+		}
+	}
+
+	if (node == NULL || (a_value != NULL && node->value == NULL)) {
+		if (a_hashtable == NULL) {
+			free( result );
+		}
+
+		result = NULL;
+	}
+
+	return result;
+}
+
+const void * nvipfix_hashtable8_get( nvIPFIX_hashtable8_t * a_hashtable,
+		const void * a_key, size_t a_keyLen )
+{
+	NVIPFIX_NULL_ARGS_GUARD_2( a_hashtable, a_key, NULL );
+
+	const void * result = NULL;
+
+	nvIPFIX_hashnode_t * node = nvipfix_hashtable8_get_or_add( a_hashtable, a_key, a_keyLen, false );
+
+	if (node != NULL) {
+		result = node->value;
+	}
+
+	return result;
+}
+
+static void nvipfix_hashtable8_free_node( nvIPFIX_hashtable8_t * a_hashtable, nvIPFIX_hashnode_t * a_node, bool a_isRoot )
+{
+	NVIPFIX_NULL_ARGS_GUARD_1_VOID( a_node );
+
+	nvipfix_hashtable8_free_node( a_hashtable, a_node->lt, false );
+	nvipfix_hashtable8_free_node( a_hashtable, a_node->gt, false );
+
+	if (a_hashtable->freeValue != NULL) {
+		a_hashtable->freeValue( a_node->value );
+	}
+
+	if (a_isRoot) {
+		free( (void *)a_node->key );
+	}
+	else {
+		free( a_node );
+	}
+}
+
+void nvipfix_hashtable8_free( nvIPFIX_hashtable8_t * a_hashtable )
+{
+	NVIPFIX_NULL_ARGS_GUARD_1_VOID( a_hashtable );
+
+	for (size_t i = 0; i < UINT8_MAX; i++) {
+		if (a_hashtable->nodes[i].keyLen != 0) {
+			nvipfix_hashtable8_free_node( a_hashtable, &(a_hashtable->nodes[i]), true );
+		}
 	}
 }
 
