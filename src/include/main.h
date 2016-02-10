@@ -18,46 +18,19 @@
  *
  */
 
-#ifndef __NVIPFIX_EXPORT_H
-#define __NVIPFIX_EXPORT_H
+#ifndef __NVIPFIX_MAIN_H
+#define __NVIPFIX_MAIN_H
 
 
 #include "types.h"
-#include "error.h"
-
-#include "config.h"
-#include "data.h"
-
-
-#define NVIPFIX_PEN 47123
-
-#define NVIPFIX_IE_LATENCY_NAME "latencyMicroseconds"
-
-
-enum {
-	NV_IPFIX_IE_LATENCY = 1
-};
 
 
 /**
  *
- * @param a_host
- * @param a_port
- * @param a_transport
- * @param key
- * @param a_data
  * @param a_startTs
  * @param a_endTs
- * @return
  */
-nvIPFIX_error_t nvipfix_export(
-		const nvIPFIX_CHAR * a_host,
-		const nvIPFIX_CHAR * a_port,
-		nvIPFIX_TRANSPORT a_transport,
-		const nvIPFIX_hashtable_key_t * a_key,
-		const nvIPFIX_data_record_list_t * a_data,
-		const nvIPFIX_datetime_t * a_startTs,
-		const nvIPFIX_datetime_t * a_endTs );
+void nvipfix_main_export( const nvIPFIX_datetime_t * a_startTs, const nvIPFIX_datetime_t * a_endTs );
 
 
-#endif /* __NVIPFIX_EXPORT_H */
+#endif /* __NVIPFIX_MAIN_H */

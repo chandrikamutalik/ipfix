@@ -25,12 +25,18 @@
 #include <string.h>
 #include <stdbool.h>
 
-
 #include "include/types.h"
 #include "include/log.h"
+#include "include/error.h"
 #include "include/config.h"
 #include "include/import.h"
 #include "include/export.h"
+
+#ifdef NVIPFIX_DEF_POSIX
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
 
 
 #define	NV_IPFIX_VERSION_MAJOR 0
@@ -46,21 +52,25 @@ enum {
 	NV_IPFIX_RETURN_CODE_OK = 0,
 	NV_IPFIX_RETURN_CODE_ARGS_ERROR,
 	NV_IPFIX_RETURN_CODE_CONFIGURATION_ERROR,
-	NV_IPFIX_RETURN_CODE_DATA_ERROR
+	NV_IPFIX_RETURN_CODE_DATA_ERROR,
+	NV_IPFIX_RETURN_CODE_START_DAEMON_ERROR
 };
+
+
+int main_daemon( void );
 
 
 void Usage()
 {
 	printf( "nvIPFIX %s\n", NVIPFIX_VERSION_STRING );
-	puts( "Usage: nvIPFIX [-fdatafile] <start_ts> <end_ts>" );
+	puts( "Usage: nvIPFIX [[-fdatafile] <start_ts> <end_ts>] [daemon]" );
 	puts( "\tdatafile - JSON file (for debug purpose)" );
 	puts( "\tstart_ts/end_ts - ISO 8601 datetime (YYYY-MM-DDTHH:mm:SS)" );
 }
 
 int main( int argc, char * argv[] )
 {
-	if (argc < 3) {
+	if (argc < 2) {
 		Usage();
 		return NV_IPFIX_RETURN_CODE_ARGS_ERROR;
 	}
@@ -71,6 +81,9 @@ int main( int argc, char * argv[] )
 	if (strncmp( "-f", argv[1], 2 ) == 0) {
 		argIndexTs = 2;
 		useFile = true;
+	}
+	else if (strcmp( "daemon", argv[1] ) == 0) {
+		return main_daemon();
 	}
 
 	nvIPFIX_datetime_t startTs = { 0 };
@@ -112,7 +125,7 @@ int main( int argc, char * argv[] )
 						NVIPFIX_ARGSF_IP_ADDRESS( collectors[i].ipAddress ),
 						collectors[i].port );
 
-				nvipfix_export( collectors[i].host, collectors[i].port, collectors[i].transport, dataRecords, &startTs, &endTs );
+				//nvipfix_export( collectors[i].host, collectors[i].port, collectors[i].transport, dataRecords, &startTs, &endTs );
 			}
 		}
 		else {
@@ -128,6 +141,33 @@ int main( int argc, char * argv[] )
 	nvipfix_config_switch_info_free( switchInfo );
 
 	return NV_IPFIX_RETURN_CODE_OK;
+}
+
+int main_daemon( void )
+{
+	int result = NV_IPFIX_RETURN_CODE_OK;
+
+#ifdef NVIPFIX_DEF_POSIX
+	pid_t pid = fork();
+
+	if (pid < 0) {
+		result = NV_IPFIX_RETURN_CODE_START_DAEMON_ERROR;
+	}
+	else if (pid == 0) {
+		umask( 0 );
+		pid_t sid = setsid();
+
+		if (sid < 0) {
+
+		}
+
+		while (true) {
+			sleep( 10 );
+		}
+	}
+#endif
+
+	return result;
 }
 
 

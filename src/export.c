@@ -33,6 +33,14 @@
 
 
 typedef struct {
+	const nvIPFIX_CHAR * host;
+	const nvIPFIX_CHAR * port;
+	nvIPFIX_TRANSPORT transport;
+	uint64_t messageCount;
+	uint64_t flowRecordCount;
+} nvIPFIX_collector_t;
+
+typedef struct {
 	uint32_t flowStartSeconds;
     uint32_t flowEndSeconds;
 
@@ -104,9 +112,16 @@ static fbInfoElementSpec_t StatsTemplate[] = {
 
 static fbInfoModel_t * InfoModel = NULL;
 
+static nvIPFIX_hashtable8_t * CollectorsTable = NULL;
+
 
 static bool nvipfix_export_init( void );
 static void nvipfix_export_cleanup( void );
+static const nvIPFIX_collector_t * nvipfix_export_get_collector(
+		const nvIPFIX_CHAR * a_host,
+		const nvIPFIX_CHAR * a_port,
+		nvIPFIX_TRANSPORT a_transport,
+		const nvIPFIX_hashtable_key_t * a_key );
 
 
 bool nvipfix_export_init( void )
@@ -116,11 +131,14 @@ bool nvipfix_export_init( void )
 	#pragma omp critical (nvipfixCritical_ExportInit)
 	{
 		if (!isInitialized) {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 			NVIPFIX_ERROR_INIT( error );
+#pragma GCC diagnostic pop
 
 			InfoModel = fbInfoModelAlloc();
-			NVIPFIX_ERROR_RAISE_IF( InfoModel == NULL, error, NV_IPFIX_ERROR_CODE_ALLOCATE_INFO_MODEL, InfoModel, \
-					"%s", "fbInfoModelAlloc fails" );
+			NVIPFIX_ERROR_RAISE_IF( InfoModel == NULL, error, NV_IPFIX_ERROR_CODE_ALLOCATE_INFO_MODEL, InfoModel,
+					"%s", "fbInfoModelAlloc failed" );
 
 			fbInfoElement_t ieLatency = FB_IE_INIT(
 					InfoElementLatencyName,
@@ -154,146 +172,255 @@ void nvipfix_export_cleanup( void )
 	}
 }
 
+static void nvipfix_export_free_collector( const void * a_collector )
+{
+	free( (void *)a_collector );
+}
+
+const nvIPFIX_collector_t * nvipfix_export_get_collector(
+		const nvIPFIX_CHAR * a_host,
+		const nvIPFIX_CHAR * a_port,
+		nvIPFIX_TRANSPORT a_transport,
+		const nvIPFIX_hashtable_key_t * a_key )
+{
+	const nvIPFIX_collector_t * result = NULL;
+
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+	NVIPFIX_ERROR_INIT( error );
+#pragma GCC diagnostic pop
+
+	#pragma omp critical (nvipfixCritical_CollectorsTable)
+	{
+		result = nvipfix_hashtable8_get( CollectorsTable, a_key->value, a_key->len );
+
+		if (result == NULL) {
+			nvIPFIX_collector_t * collector = malloc( sizeof (nvIPFIX_collector_t) );
+
+			NVIPFIX_ERROR_RAISE_IF( collector == NULL, error, NV_IPFIX_ERROR_CODE_MALLOC, CollectorAlloc,
+					"%s", "Collector malloc failed" );
+
+			collector->host = a_host;
+			collector->port = a_port;
+			collector->transport = a_transport;
+			collector->messageCount = 0;
+			collector->flowRecordCount = 0;
+
+			CollectorsTable = nvipfix_hashtable8_add( CollectorsTable,
+				a_key->value, a_key->len, collector,
+				NULL, nvipfix_export_free_collector );
+
+			NVIPFIX_ERROR_RAISE_IF( CollectorsTable == NULL, error, NV_IPFIX_ERROR_CODE_HASHTABLE_ADD, CollectorAdd,
+					"%s", "Collector add failed" );
+
+			NVIPFIX_ERROR_RAISE( error, NV_IPFIX_ERROR_CODE_NONE, None );
+
+			NVIPFIX_ERROR_HANDLER( CollectorAdd );
+			free( collector );
+
+			NVIPFIX_ERROR_HANDLER( CollectorAlloc );
+
+			NVIPFIX_ERROR_HANDLER( None );
+		}
+	}
+
+	return result;
+}
+
 nvIPFIX_error_t nvipfix_export(
 		const nvIPFIX_CHAR * a_host,
 		const nvIPFIX_CHAR * a_port,
 		nvIPFIX_TRANSPORT a_transport,
+		const nvIPFIX_hashtable_key_t * a_key,
 		const nvIPFIX_data_record_list_t * a_data,
 		const nvIPFIX_datetime_t * a_startTs,
 		const nvIPFIX_datetime_t * a_endTs )
 {
 	NVIPFIX_ERROR_INIT( error );
 
-	nvipfix_export_init();
+	NVIPFIX_ERROR_RAISE_IF( !nvipfix_export_init(), error, NV_IPFIX_ERROR_CODE_EXPORT_INIT, Init, "", NULL );
+
+	nvIPFIX_collector_t * collector = (nvIPFIX_collector_t *)nvipfix_export_get_collector( a_host, a_port, a_transport, a_key );
+	NVIPFIX_ERROR_RAISE_IF( collector == NULL, error, NV_IPFIX_ERROR_CODE_EXPORT_GET_COLLECTOR, CollectorGet,
+			"%s", "Unable to get collector" );
 
 	fbSession_t * session = fbSessionAlloc( InfoModel );
+	NVIPFIX_ERROR_RAISE_IF( session == NULL, error, NV_IPFIX_ERROR_CODE_ALLOCATE_SESSION, SessionAlloc,
+			"%s", "fbSessionAlloc failed" );
 
-	if (session != NULL) {
-		fbConnSpec_t connSpec = { 0 };
+	fbConnSpec_t connSpec = { 0 };
+	connSpec.transport = (a_transport == NV_IPFIX_TRANSPORT_TCP) ? FB_TCP
+			: (a_transport == NV_IPFIX_TRANSPORT_UDP) ? FB_UDP
+			: FB_SCTP ;
 
-		connSpec.transport = (a_transport == NV_IPFIX_TRANSPORT_TCP) ? FB_TCP
-				: (a_transport == NV_IPFIX_TRANSPORT_UDP) ? FB_UDP
-						: FB_SCTP ;
+	connSpec.host = (char *)a_host;
+	connSpec.svc = (char *)a_port;
+	connSpec.ssl_ca_file = NULL;
+	connSpec.ssl_cert_file = NULL;
+	connSpec.ssl_key_file = NULL;
+	connSpec.ssl_key_pass = NULL;
+	connSpec.vai = NULL;
+	connSpec.vssl_ctx = NULL;
 
-		connSpec.host = (char *)a_host;
-		connSpec.svc = (char *)a_port;
-		connSpec.ssl_ca_file = NULL;
-		connSpec.ssl_cert_file = NULL;
-		connSpec.ssl_key_file = NULL;
-		connSpec.ssl_key_pass = NULL;
-		connSpec.vai = NULL;
-		connSpec.vssl_ctx = NULL;
+	NVIPFIX_TLOG_DEBUG( "host = %s, port = %s, transport = %d",
+			connSpec.host,
+			connSpec.svc,
+			(unsigned)connSpec.transport );
 
-		NVIPFIX_TLOG_DEBUG( "host = %s, port = %s, transport = %d",
-				connSpec.host,
-				connSpec.svc,
-				(unsigned)connSpec.transport );
+	fbExporter_t * exporter = fbExporterAllocNet( &connSpec );
+	//fbExporter_t * exporter = fbExporterAllocFile( "./ipfix.out" );
+	NVIPFIX_ERROR_RAISE_IF( exporter == NULL, error, NV_IPFIX_ERROR_CODE_ALLOCATE_EXPORTER, ExporterAlloc,
+			"%s", "Exporter alloc failed" );
 
-		fbExporter_t * exporter = fbExporterAllocNet( &connSpec );
-		//fbExporter_t * exporter = fbExporterAllocFile( "./ipfix.out" );
+	fbTemplate_t * template = fbTemplateAlloc( InfoModel );
+	NVIPFIX_ERROR_RAISE_IF( template == NULL, error, NV_IPFIX_ERROR_CODE_ALLOCATE_TEMPLATE, TemplateAlloc,
+			"%s", "Template alloc failed" );
 
-		if (exporter != NULL) {
-			fbTemplate_t * template = fbTemplateAlloc( InfoModel );
+	fbTemplate_t * statsTemplate = fbTemplateAlloc( InfoModel );
+	NVIPFIX_ERROR_RAISE_IF( exporter == NULL, error, NV_IPFIX_ERROR_CODE_ALLOCATE_TEMPLATE, StatsTemplateAlloc,
+			"%s", "Stats template alloc failed" );
 
-			if (template != NULL) {
-				GError * fbError = NULL;
+	GError * fbError = NULL;
 
-				if (fbTemplateAppendSpecArray( template, Template, UINT32_MAX, &fbError )) {
-					uint16_t templateId = fbSessionAddTemplate( session, TRUE, FB_TID_AUTO, template, &fbError );
-					uint16_t templateIdExt = fbSessionAddTemplate( session, FALSE, FB_TID_AUTO, template, &fbError );
+	NVIPFIX_ERROR_RAISE_IF( !fbTemplateAppendSpecArray( template, Template, UINT32_MAX, &fbError ),
+			error, NV_IPFIX_ERROR_CODE_EXPORT_TEMPLATE_APPEND_SPEC, TemplateAppendSpec,
+			"%s", "Template append spec failed" );
 
-					nvipfix_tlog_debug( NVIPFIX_T( "%s: templateId = %d" ), __func__, (unsigned)templateId );
+	NVIPFIX_ERROR_RAISE_IF( !fbTemplateAppendSpecArray( statsTemplate, StatsTemplate, UINT32_MAX, &fbError ),
+			error, NV_IPFIX_ERROR_CODE_EXPORT_TEMPLATE_APPEND_SPEC, StatsTemplateAppendSpec,
+			"%s", "Stats template append spec failed" );
 
-					if (templateId == 0) {
-						nvipfix_tlog_error( NVIPFIX_T( "%s: fbSessionAddTemplate %s" ), __func__, fbError->message );
-					}
+	uint16_t templateId = fbSessionAddTemplate( session, TRUE, FB_TID_AUTO, template, &fbError );
+	uint16_t templateIdExt = fbSessionAddTemplate( session, FALSE, FB_TID_AUTO, template, &fbError );
+	uint16_t statsTemplateId = fbSessionAddTemplate( session, TRUE, FB_TID_AUTO, statsTemplate, &fbError );
+	uint16_t statsTemplateIdExt = fbSessionAddTemplate( session, FALSE, FB_TID_AUTO, statsTemplate, &fbError );
+	NVIPFIX_ERROR_RAISE_IF( templateId == 0 || templateIdExt == 0 || statsTemplateId == 0 || statsTemplateIdExt == 0,
+			error, NV_IPFIX_ERROR_CODE_EXPORT_SESSION_ADD_TEMPLATE, SessionAddTemplate,
+			"%s", "Session add template failed" );
 
-					fBuf_t * buffer = fBufAllocForExport( session, exporter );
+	NVIPFIX_TLOG_DEBUG( "%s: templateId = %d, stats templateId = %d", (unsigned)templateId, (unsigned)statsTemplateId );
 
-					if (fbSessionExportTemplates( session, &fbError )) {
-						if (fBufSetInternalTemplate( buffer, templateId, &fbError )) {
-							if (fBufSetExportTemplate( buffer, templateIdExt, &fbError )) {
-								nvIPFIX_U32 startTs = nvipfix_datetime_get_seconds_since_epoch( a_startTs, 1970, 1 );
-								nvIPFIX_U32 endTs = nvipfix_datetime_get_seconds_since_epoch( a_endTs, 1970, 1 );
+	fBuf_t * buffer = fBufAllocForExport( session, exporter );
+	NVIPFIX_ERROR_RAISE_IF( buffer == NULL,
+			error, NV_IPFIX_ERROR_CODE_EXPORT_BUF_ALLOC, BufAlloc,
+			"%s", "Buf alloc failed" );
 
-								nvIPFIX_data_record_t * record = a_data->head;
+	NVIPFIX_ERROR_RAISE_IF( !fbSessionExportTemplates( session, &fbError ),
+			error, NV_IPFIX_ERROR_CODE_EXPORT_SESSION_EXPORT_TEMPLATES, SessionExportTemplates,
+			"%s", "Session export templates failed" );
 
-								while (record != NULL) {
-									nvIPFIX_export_data_t data = { 0 };
-									data.flowStartSeconds = record->flowStart.hasValue
-											? nvipfix_datetime_get_seconds_since_epoch( &(record->flowStart), 1970, 1 )
-													: startTs;
+	NVIPFIX_ERROR_RAISE_IF( !fBufSetInternalTemplate( buffer, templateId, &fbError ),
+			error, NV_IPFIX_ERROR_CODE_EXPORT_SET_INTERNAL_TEMPLATE, SetInternalTemplate,
+			"%s", "Set internal template failed" );
 
-									data.flowEndSeconds = record->flowEnd.hasValue
-											? nvipfix_datetime_get_seconds_since_epoch( &(record->flowEnd), 1970, 1 )
-													: endTs;
+	NVIPFIX_ERROR_RAISE_IF( !fBufSetExportTemplate( buffer, templateIdExt, &fbError ),
+			error, NV_IPFIX_ERROR_CODE_EXPORT_SET_EXPORT_TEMPLATE, SetExportTemplate,
+			"%s", "Set export template failed" );
 
-									data.flowDurationMilliseconds = nvipfix_timespan_get_milliseconds( &record->flowDuration );
-									data.ingressInterface = record->ingressInterface;
-									data.egressInterface = record->egressInterface;
-									data.vlanId = record->vlanId;
-									data.layer2SegmentId = record->layer2SegmentId;
-									data.transportOctetDeltaCount = record->transportOctetDeltaCount;
-									data.initiatorOctets = record->initiatorOctets;
-									data.responderOctets = record->responderOctets;
-									data.sourceIpAddress = record->sourceIp.value;
-									data.destinationIpAddress = record->destinationIp.value;
-									data.sourceTransportPort = record->sourcePort;
-									data.destinationTransportPort = record->destinationPort;
-									memcpy( data.sourceMacAddress, record->sourceMac.octets, sizeof data.sourceMacAddress );
-									memcpy( data.destinationMacAddress, record->destinationMac.octets, sizeof data.destinationMacAddress );
-									data.protocolIdentifier = record->protocol;
-									data.tcpControlBits = (uint8_t)record->tcpControlBits;
-									data.ethernetType = (uint16_t)record->ethernetType;
-									data.latencyMicroseconds = nvipfix_timespan_get_microseconds( &record->latency );
+	nvIPFIX_U32 startTs = nvipfix_datetime_get_seconds_since_epoch( a_startTs, 1970, 1 );
+	nvIPFIX_U32 endTs = nvipfix_datetime_get_seconds_since_epoch( a_endTs, 1970, 1 );
 
-									NVIPFIX_TLOG_DEBUG( "%d.%d.%d.%d:%d -> %d.%d.%d.%d:%d %d %d-%d %d %02x:%02x:%02x:%02x:%02x:%02x",
-											NVIPFIX_ARGSF_IP_ADDRESS( record->sourceIp ), record->sourcePort,
-											NVIPFIX_ARGSF_IP_ADDRESS( record->destinationIp ), record->destinationPort,
-											record->transportOctetDeltaCount,
-											data.flowStartSeconds,
-											data.flowEndSeconds,
-											data.flowDurationMilliseconds,
-											NVIPFIX_ARGSF_MAC_ADDRESS( record->sourceMac ) );
+	nvIPFIX_data_record_t * record = a_data->head;
+	int recordCount = 0;
 
-									if (!fBufAppend( buffer, (uint8_t *)&data, sizeof (nvIPFIX_export_data_t), &fbError )) {
-										nvipfix_tlog_error( NVIPFIX_T( "%s: fBufAppend %s" ), __func__, fbError->message );
-									}
+	while (record != NULL) {
+		nvIPFIX_export_data_t data = { 0 };
 
-									record = record->next;
-								}
-							}
-							else {
-								nvipfix_tlog_error( NVIPFIX_T( "%s: fBufSetExportTemplate %s" ), __func__, fbError->message );
-							}
-						}
-						else {
-							nvipfix_tlog_error( NVIPFIX_T( "%s: fBufSetInternalTemplate" ), __func__ );
-						}
-					}
-					else {
-						nvipfix_tlog_error( NVIPFIX_T( "%s: fbSessionExportTemplates" ), __func__ );
-					}
-				}
-				else {
-					nvipfix_tlog_error( NVIPFIX_T( "%s: fbTemplateAppendSpecArray" ), __func__ );
-				}
-			}
-			else {
-				error.code = NV_IPFIX_ERROR_CODE_ALLOCATE_TEMPLATE;
-				fbSessionFree( session );
-			}
+		data.flowStartSeconds = record->flowStart.hasValue
+				? nvipfix_datetime_get_seconds_since_epoch( &(record->flowStart), 1970, 1 )
+						: startTs;
 
-			fbExporterClose( exporter );
+		data.flowEndSeconds = record->flowEnd.hasValue
+				? nvipfix_datetime_get_seconds_since_epoch( &(record->flowEnd), 1970, 1 )
+						: endTs;
+
+		data.flowDurationMilliseconds = nvipfix_timespan_get_milliseconds( &record->flowDuration );
+		data.ingressInterface = record->ingressInterface;
+		data.egressInterface = record->egressInterface;
+		data.vlanId = record->vlanId;
+		data.layer2SegmentId = record->layer2SegmentId;
+		data.transportOctetDeltaCount = record->transportOctetDeltaCount;
+		data.initiatorOctets = record->initiatorOctets;
+		data.responderOctets = record->responderOctets;
+		data.sourceIpAddress = record->sourceIp.value;
+		data.destinationIpAddress = record->destinationIp.value;
+		data.sourceTransportPort = record->sourcePort;
+		data.destinationTransportPort = record->destinationPort;
+		memcpy( data.sourceMacAddress, record->sourceMac.octets, sizeof data.sourceMacAddress );
+		memcpy( data.destinationMacAddress, record->destinationMac.octets, sizeof data.destinationMacAddress );
+		data.protocolIdentifier = record->protocol;
+		data.tcpControlBits = (uint8_t) record->tcpControlBits;
+		data.ethernetType = (uint16_t) record->ethernetType;
+		data.latencyMicroseconds = nvipfix_timespan_get_microseconds( &record->latency );
+
+		NVIPFIX_TLOG_DEBUG(
+				"%d.%d.%d.%d:%d -> %d.%d.%d.%d:%d %d %d-%d %d %02x:%02x:%02x:%02x:%02x:%02x",
+				NVIPFIX_ARGSF_IP_ADDRESS( record->sourceIp ),
+				record->sourcePort,
+				NVIPFIX_ARGSF_IP_ADDRESS( record->destinationIp ),
+				record->destinationPort, record->transportOctetDeltaCount,
+				data.flowStartSeconds, data.flowEndSeconds,
+				data.flowDurationMilliseconds,
+				NVIPFIX_ARGSF_MAC_ADDRESS( record->sourceMac ));
+
+		if (!fBufAppend( buffer, (uint8_t *) &data, sizeof (nvIPFIX_export_data_t), &fbError )) {
+			NVIPFIX_TLOG_ERROR( "%s: fBufAppend %s", __func__, fbError->message );
 		}
 		else {
-			error.code = NV_IPFIX_ERROR_CODE_ALLOCATE_EXPORTER;
-			fbSessionFree( session );
+			recordCount++;
 		}
+
+		record = record->next;
 	}
-	else {
-		error.code = NV_IPFIX_ERROR_CODE_ALLOCATE_SESSION;
-	}
+
+	NVIPFIX_ERROR_RAISE_IF( !fBufSetInternalTemplate( buffer, statsTemplateId, &fbError ),
+			error, NV_IPFIX_ERROR_CODE_EXPORT_SET_INTERNAL_TEMPLATE, SetInternalTemplateStats,
+			"%s", "Set internal template (stats) failed" );
+
+	NVIPFIX_ERROR_RAISE_IF( !fBufSetExportTemplate( buffer, statsTemplateIdExt, &fbError ),
+			error, NV_IPFIX_ERROR_CODE_EXPORT_SET_EXPORT_TEMPLATE, SetExportTemplateStats,
+			"%s", "Set export template (stats) failed" );
+
+	collector->flowRecordCount += recordCount;
+	collector->messageCount++;
+
+	nvIPFIX_export_stats_data_t stats = { 0 };
+	stats.exportedFlowRecordTotalCount = collector->flowRecordCount;
+	stats.exportedMessageTotalCount = collector->messageCount;
+
+	NVIPFIX_TLOG_ERROR_IF(
+			!fBufAppend( buffer, (uint8_t *) &stats, sizeof (nvIPFIX_export_stats_data_t), &fbError ),
+			"%s: fBufAppend (stats) %s", __func__, fbError->message );
+
+	NVIPFIX_ERROR_HANDLER( SetExportTemplateStats );
+
+	NVIPFIX_ERROR_HANDLER( SetInternalTemplateStats );
+
+	NVIPFIX_ERROR_HANDLER( SetExportTemplate );
+
+	NVIPFIX_ERROR_HANDLER( SetInternalTemplate );
+
+	NVIPFIX_ERROR_HANDLER( SessionExportTemplates );
+
+	NVIPFIX_ERROR_HANDLER( BufAlloc );
+
+	NVIPFIX_ERROR_HANDLER( SessionAddTemplate );
+
+	NVIPFIX_ERROR_HANDLER( StatsTemplateAppendSpec );
+
+	NVIPFIX_ERROR_HANDLER( TemplateAppendSpec );
+
+	NVIPFIX_ERROR_HANDLER( StatsTemplateAlloc );
+
+	NVIPFIX_ERROR_HANDLER( TemplateAlloc );
+
+	NVIPFIX_ERROR_HANDLER( ExporterAlloc );
+
+	NVIPFIX_ERROR_HANDLER( SessionAlloc );
+
+	NVIPFIX_ERROR_HANDLER( CollectorGet );
+
+	NVIPFIX_ERROR_HANDLER( Init );
 
 	return error;
 }
