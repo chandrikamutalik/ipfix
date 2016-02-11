@@ -8,6 +8,7 @@ $(DIR_SRC)/import.c \
 $(DIR_SRC)/log.c \
 $(DIR_SRC)/nvipfix.c \
 $(DIR_SRC)/types.c \
+$(DIR_SRC)/main.c \
 $(DIR_SRC)/_test.c
 
 OBJS += \
@@ -19,6 +20,7 @@ $(DIR_OBJ)/import.o \
 $(DIR_OBJ)/log.o \
 $(DIR_OBJ)/nvipfix.o \
 $(DIR_OBJ)/types.o \
+$(DIR_OBJ)/main.o \
 $(DIR_OBJ)/_test.o 
 
 C_DEPS += \
@@ -30,6 +32,7 @@ $(DIR_DEP)/import.d \
 $(DIR_DEP)/log.d \
 $(DIR_DEP)/nvipfix.d \
 $(DIR_DEP)/types.d \
+$(DIR_DEP)/main.d \
 $(DIR_DEP)/_test.d 
 
 
