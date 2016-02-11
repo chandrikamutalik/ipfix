@@ -42,20 +42,22 @@
 
 #define NVIPFIX_TM_INIT_FROM_DT( a_varName, a_datetime ) \
 	struct tm a_varName = { 0 };	\
-	a_varName.tm_year = a_datetime->year - 1900;	\
-	a_varName.tm_mon = a_datetime->month - 1;	\
-	a_varName.tm_mday = a_datetime->day;	\
-	a_varName.tm_hour = a_datetime->hours;	\
-	a_varName.tm_min = a_datetime->minutes;	\
-	a_varName.tm_sec = a_datetime->seconds
+	a_varName.tm_year = (a_datetime)->year - 1900;	\
+	a_varName.tm_mon = (a_datetime)->month - 1;	\
+	a_varName.tm_mday = (a_datetime)->day;	\
+	a_varName.tm_hour = (a_datetime)->hours;	\
+	a_varName.tm_min = (a_datetime)->minutes;	\
+	a_varName.tm_sec = (a_datetime)->seconds
 
 #define NVIPFIX_DT_FROM_TM( a_datetime, a_tm ) \
-	a_datetime->year = a_tm.tm_year + 1900;	\
-	a_datetime->month = a_tm.tm_mon + 1;	\
-	a_datetime->day = a_tm.tm_mday;	\
-	a_datetime->hours = a_tm.tm_hour;	\
-	a_datetime->minutes = a_tm.tm_min;	\
-	a_datetime->seconds = a_tm.tm_sec
+	(a_datetime)->year = (a_tm).tm_year + 1900;	\
+	(a_datetime)->month = (a_tm).tm_mon + 1;	\
+	(a_datetime)->day = (a_tm).tm_mday;	\
+	(a_datetime)->hours = (a_tm).tm_hour;	\
+	(a_datetime)->minutes = (a_tm).tm_min;	\
+	(a_datetime)->seconds = (a_tm).tm_sec;	\
+	(a_datetime)->milliseconds = 0;	\
+	NVIPFIX_TIMESPAN_SET_SECONDS( (a_datetime)->tzOffset, 0 )
 
 
 enum {
@@ -664,6 +666,7 @@ bool nvipfix_parse_datetime_iso8601( const char * a_s, void * a_value )
 
 												if (nvipfix_parse_unsigned( timeTokens->tail->value, &value )) {
 													datetime->seconds = value;
+													datetime->milliseconds = 0;
 
 													result = true;
 												}
@@ -686,6 +689,7 @@ bool nvipfix_parse_datetime_iso8601( const char * a_s, void * a_value )
 	}
 
 	datetime->hasValue = result;
+	NVIPFIX_TIMESPAN_SET_SECONDS( datetime->tzOffset, 0 );
 
 	return result;
 }
@@ -766,6 +770,26 @@ time_t nvipfix_datetime_to_ctime( const nvIPFIX_datetime_t * a_datetime )
 	return mktime( &datetime );
 }
 
+bool nvipfix_ctime_to_datetime( nvIPFIX_datetime_t * a_datetime, const time_t * a_ctime )
+{
+	NVIPFIX_NULL_ARGS_GUARD_2( a_datetime, a_ctime, false );
+
+	bool result = true;
+	struct tm datetime;
+	struct tm datetimeUtc;
+
+	#pragma omp critical (nvipfixCritical_gmtime)
+	{
+		datetimeUtc = *(gmtime( a_ctime ));
+		datetime = *(localtime( a_ctime ));
+	}
+
+	NVIPFIX_DT_FROM_TM( a_datetime, datetime );
+	NVIPFIX_TIMESPAN_SET_SECONDS( a_datetime->tzOffset, difftime( mktime( &datetimeUtc ), *a_ctime ) );
+
+	return result;
+}
+
 time_t nvipfix_datetime_add_timespan( nvIPFIX_datetime_t * a_datetime, const nvIPFIX_timespan_t * a_timespan )
 {
 	NVIPFIX_NULL_ARGS_GUARD_2( a_datetime, a_timespan, (time_t)-1 );
@@ -776,6 +800,34 @@ time_t nvipfix_datetime_add_timespan( nvIPFIX_datetime_t * a_datetime, const nvI
 	time_t result = mktime( &datetime );
 
 	NVIPFIX_DT_FROM_TM( a_datetime, datetime );
+
+	return result;
+}
+
+nvIPFIX_I64 nvipfix_timespan_get_minutes( const nvIPFIX_timespan_t * a_timespan )
+{
+	nvIPFIX_I64 result = 0;
+
+	NVIPFIX_NULL_ARGS_GUARD_1( a_timespan, result );
+
+	if (a_timespan->hasValue) {
+		result = a_timespan->microseconds / (NVIPFIX_MICROSECONDS_PER_MILLISECOND
+				* NVIPFIX_MILLISECONDS_PER_SECOND
+				* NVIPFIX_SECONDS_PER_MINUTE);
+	}
+
+	return result;
+}
+
+nvIPFIX_I64 nvipfix_timespan_get_seconds( const nvIPFIX_timespan_t * a_timespan )
+{
+	nvIPFIX_I64 result = 0;
+
+	NVIPFIX_NULL_ARGS_GUARD_1( a_timespan, result );
+
+	if (a_timespan->hasValue) {
+		result = NVIPFIX_TIMESPAN_GET_SECONDS( a_timespan );
+	}
 
 	return result;
 }

@@ -23,14 +23,33 @@
 
 
 #include "types.h"
+#include "data.h"
 
+
+/**
+ *
+ * @param a_dataRecords
+ * @param a_startTs
+ * @param a_endTs
+ */
+void nvipfix_main_export( nvIPFIX_data_record_list_t * a_dataRecords,
+		const nvIPFIX_datetime_t * a_startTs, const nvIPFIX_datetime_t * a_endTs );
+
+/**
+ *
+ * @param a_filename
+ * @param a_startTs
+ * @param a_endTs
+ */
+void nvipfix_main_export_file( const nvIPFIX_CHAR * a_filename,
+		const nvIPFIX_datetime_t * a_startTs, const nvIPFIX_datetime_t * a_endTs );
 
 /**
  *
  * @param a_startTs
  * @param a_endTs
  */
-void nvipfix_main_export( const nvIPFIX_datetime_t * a_startTs, const nvIPFIX_datetime_t * a_endTs );
+void nvipfix_main_export_nvc( const nvIPFIX_datetime_t * a_startTs, const nvIPFIX_datetime_t * a_endTs );
 
 
 #endif /* __NVIPFIX_MAIN_H */

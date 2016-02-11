@@ -33,9 +33,6 @@
 
 
 typedef struct {
-	const nvIPFIX_CHAR * host;
-	const nvIPFIX_CHAR * port;
-	nvIPFIX_TRANSPORT transport;
 	uint64_t messageCount;
 	uint64_t flowRecordCount;
 } nvIPFIX_collector_t;
@@ -117,11 +114,7 @@ static nvIPFIX_hashtable8_t * CollectorsTable = NULL;
 
 static bool nvipfix_export_init( void );
 static void nvipfix_export_cleanup( void );
-static const nvIPFIX_collector_t * nvipfix_export_get_collector(
-		const nvIPFIX_CHAR * a_host,
-		const nvIPFIX_CHAR * a_port,
-		nvIPFIX_TRANSPORT a_transport,
-		const nvIPFIX_hashtable_key_t * a_key );
+static const nvIPFIX_collector_t * nvipfix_export_get_collector( const nvIPFIX_hashtable_key_t * a_key );
 
 
 bool nvipfix_export_init( void )
@@ -177,11 +170,7 @@ static void nvipfix_export_free_collector( const void * a_collector )
 	free( (void *)a_collector );
 }
 
-const nvIPFIX_collector_t * nvipfix_export_get_collector(
-		const nvIPFIX_CHAR * a_host,
-		const nvIPFIX_CHAR * a_port,
-		nvIPFIX_TRANSPORT a_transport,
-		const nvIPFIX_hashtable_key_t * a_key )
+const nvIPFIX_collector_t * nvipfix_export_get_collector( const nvIPFIX_hashtable_key_t * a_key )
 {
 	const nvIPFIX_collector_t * result = NULL;
 
@@ -200,9 +189,6 @@ const nvIPFIX_collector_t * nvipfix_export_get_collector(
 			NVIPFIX_ERROR_RAISE_IF( collector == NULL, error, NV_IPFIX_ERROR_CODE_MALLOC, CollectorAlloc,
 					"%s", "Collector malloc failed" );
 
-			collector->host = a_host;
-			collector->port = a_port;
-			collector->transport = a_transport;
 			collector->messageCount = 0;
 			collector->flowRecordCount = 0;
 
@@ -240,7 +226,7 @@ nvIPFIX_error_t nvipfix_export(
 
 	NVIPFIX_ERROR_RAISE_IF( !nvipfix_export_init(), error, NV_IPFIX_ERROR_CODE_EXPORT_INIT, Init, "", NULL );
 
-	nvIPFIX_collector_t * collector = (nvIPFIX_collector_t *)nvipfix_export_get_collector( a_host, a_port, a_transport, a_key );
+	nvIPFIX_collector_t * collector = (nvIPFIX_collector_t *)nvipfix_export_get_collector( a_key );
 	NVIPFIX_ERROR_RAISE_IF( collector == NULL, error, NV_IPFIX_ERROR_CODE_EXPORT_GET_COLLECTOR, CollectorGet,
 			"%s", "Unable to get collector" );
 

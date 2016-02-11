@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <time.h>
 
 #include "include/types.h"
 #include "include/log.h"
@@ -104,7 +105,7 @@ int TestHashtable8( void )
 	return result;
 }
 
-int TestConfig()
+int TestConfig( void )
 {
 	int result = 0;
 	size_t collectorsCount;
@@ -132,11 +133,37 @@ int TestConfig()
 	return result;
 }
 
+int TestDatetime( void )
+{
+	int result = 0;
+	nvIPFIX_datetime_t datetime = { 0 };
+	time_t ctime = time( NULL );
+
+	NVIPFIX_TEST_LOG_RESULT( result, 4, nvipfix_ctime_to_datetime( &datetime, &ctime ),
+			"year = %d, month = %d, day = %d, hours = %d, minutes = %d, tz = %d\n",
+			datetime.year, datetime.month, datetime.day, datetime.hours, datetime.minutes,
+			(int)nvipfix_timespan_get_minutes( &(datetime.tzOffset) ) );
+
+	time_t ctimeDt = nvipfix_datetime_to_ctime( &datetime );
+
+	NVIPFIX_TEST_LOG_RESULT( result, 4, ctime == ctimeDt, "%f, %f\n",
+			(double)ctime, (double)ctimeDt );
+
+	NVIPFIX_TIMESPAN_INIT_FROM_SECONDS( timespan, -60 );
+	NVIPFIX_TEST_LOG_RESULT( result, 4, nvipfix_datetime_add_timespan( &datetime, &timespan ) > (time_t)0,
+			"year = %d, month = %d, day = %d, hours = %d, minutes = %d, tz = %d\n",
+			datetime.year, datetime.month, datetime.day, datetime.hours, datetime.minutes,
+			(int)nvipfix_timespan_get_minutes( &(datetime.tzOffset) ) );
+
+	return result;
+}
+
 int main( int argc, char * argv[] )
 {
 	int rc = 0;
 	rc = TestHashtable8();
 	rc |= TestConfig();
+	rc |= TestDatetime();
 
 	printf( "test result = %d\n", rc );
 

@@ -24,13 +24,12 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
+#include <time.h>
 
 #include "include/types.h"
 #include "include/log.h"
 #include "include/error.h"
-#include "include/config.h"
-#include "include/import.h"
-#include "include/export.h"
+#include "include/main.h"
 
 #ifdef NVIPFIX_DEF_POSIX
 #include <sys/types.h>
@@ -55,6 +54,9 @@ enum {
 	NV_IPFIX_RETURN_CODE_DATA_ERROR,
 	NV_IPFIX_RETURN_CODE_START_DAEMON_ERROR
 };
+
+
+NVIPFIX_TIMESPAN_INIT_FROM_SECONDS( ExportDuration, 60 );
 
 
 int main_daemon( void );
@@ -97,48 +99,12 @@ int main( int argc, char * argv[] )
 		return NV_IPFIX_RETURN_CODE_ARGS_ERROR;
 	}
 
-	nvIPFIX_switch_info_t * switchInfo = nvipfix_config_switch_info_get();
-	nvipfix_log_debug( "switch: host = %s, login = %s, password = %s",
-			switchInfo->host,
-			switchInfo->login,
-			switchInfo->password );
-
-	size_t collectorsCount;
-	nvIPFIX_collector_info_t * collectors = nvipfix_config_collectors_get( &collectorsCount );
-
-	if (collectors != NULL) {
-		nvIPFIX_data_record_list_t * dataRecords = NULL;
-
-		if (useFile) {
-			dataRecords = nvipfix_import_file( argv[1] + 2 );
-		}
-		else {
-#ifdef NVIPFIX_DEF_ENABLE_NVC
-			dataRecords = nvipfix_import_nvc( switchInfo->host, switchInfo->login, switchInfo->password, &startTs, &endTs );
-#endif
-		}
-
-		if (dataRecords != NULL) {
-			for (size_t i = 0; i < collectorsCount; i++) {
-				nvipfix_log_debug( "collector: name = %s, host = %s, ip = %d.%d.%d.%d, port = %s",
-						collectors[i].name, collectors[i].host,
-						NVIPFIX_ARGSF_IP_ADDRESS( collectors[i].ipAddress ),
-						collectors[i].port );
-
-				//nvipfix_export( collectors[i].host, collectors[i].port, collectors[i].transport, dataRecords, &startTs, &endTs );
-			}
-		}
-		else {
-			nvipfix_log_error( "no data" );
-			return NV_IPFIX_RETURN_CODE_DATA_ERROR;
-		}
+	if (useFile) {
+		nvipfix_main_export_file( argv[1] + 2, &startTs, &endTs );
 	}
 	else {
-		nvipfix_log_error( "no collector(s) defined" );
-		return NV_IPFIX_RETURN_CODE_CONFIGURATION_ERROR;
+		nvipfix_main_export_nvc( &startTs, &endTs );
 	}
-
-	nvipfix_config_switch_info_free( switchInfo );
 
 	return NV_IPFIX_RETURN_CODE_OK;
 }
@@ -158,11 +124,31 @@ int main_daemon( void )
 		pid_t sid = setsid();
 
 		if (sid < 0) {
-
+			result = NV_IPFIX_RETURN_CODE_START_DAEMON_ERROR;
 		}
+		else {
+			time_t startT = time( NULL );
 
-		while (true) {
-			sleep( 10 );
+			while (true) {
+				time_t nowT = time( NULL );
+				double timeDiff = difftime( nowT, startT );
+				int waitSeconds = NVIPFIX_TIMESPAN_GET_SECONDS( &ExportDuration ) - timeDiff;
+
+				if (waitSeconds > 0) {
+					sleep( waitSeconds );
+
+					nowT = time( NULL );
+				}
+
+				nvIPFIX_datetime_t startTs = { 0 };
+				nvIPFIX_datetime_t endTs = { 0 };
+
+				if (nvipfix_ctime_to_datetime( &startTs, &startT ) &&  nvipfix_ctime_to_datetime( &endTs, &nowT )) {
+					nvipfix_main_export_nvc( &startTs, &endTs );
+				}
+
+				startT = nowT;
+			}
 		}
 	}
 #endif

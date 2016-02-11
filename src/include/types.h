@@ -35,6 +35,7 @@
 
 #define NVIPFIX_NULL_ARGS_GUARD_1_VOID( a ) { if ((a) == NULL) return; }
 #define NVIPFIX_NULL_ARGS_GUARD_1( a, result ) { if ((a) == NULL) return (result); }
+#define NVIPFIX_NULL_ARGS_GUARD_2_VOID( a, b ) { if ((a) == NULL || (b) == NULL) return; }
 #define NVIPFIX_NULL_ARGS_GUARD_2( a, b, result ) { if ((a) == NULL || (b) == NULL) return (result); }
 
 #define NVIPFIX_HOURS_PER_DAY 24
@@ -48,6 +49,13 @@
 	nvIPFIX_timespan_t a_varName = { \
 			.microseconds = (a_seconds) *  NVIPFIX_MILLISECONDS_PER_SECOND * NVIPFIX_MICROSECONDS_PER_MILLISECOND, \
 			.hasValue = true }
+
+#define NVIPFIX_TIMESPAN_SET_SECONDS( a_varName, a_seconds ) \
+	(a_varName).microseconds = (a_seconds) *  NVIPFIX_MILLISECONDS_PER_SECOND * NVIPFIX_MICROSECONDS_PER_MILLISECOND; \
+	(a_varName).hasValue = true;
+
+#define NVIPFIX_TIMESPAN_GET_SECONDS( a_varName ) \
+		((a_varName)->microseconds / (NVIPFIX_MICROSECONDS_PER_MILLISECOND	* NVIPFIX_MILLISECONDS_PER_SECOND))
 
 #define NVIPFIX_ARGSF_IP_ADDRESS( a ) \
 	((a).value >> 24) & 0xff, ((a).value >> 16) & 0xff, ((a).value >> 8) & 0xff, (a).value & 0xff
@@ -94,6 +102,12 @@ typedef uint64_t nvIPFIX_U64;
 typedef int64_t nvIPFIX_I64;
 
 typedef struct {
+	nvIPFIX_I64 microseconds;
+
+	bool hasValue;
+} nvIPFIX_timespan_t;
+
+typedef struct {
 	int year;
 	int month;
 	int day;
@@ -101,15 +115,10 @@ typedef struct {
 	int minutes;
 	int seconds;
 	int milliseconds;
+	nvIPFIX_timespan_t tzOffset;
 
 	bool hasValue;
 } nvIPFIX_datetime_t;
-
-typedef struct {
-	nvIPFIX_I64 microseconds;
-
-	bool hasValue;
-} nvIPFIX_timespan_t;
 
 typedef enum {
 	NV_IPFIX_ADDRESS_OCTETS_COUNT_IPV4 = 4,
@@ -387,7 +396,8 @@ const nvIPFIX_CHAR * nvipfix_ip_address_to_string( const nvIPFIX_ip_address_t * 
  * @param a_epoch_month 1 - 12
  * @return
  */
-nvIPFIX_U32 nvipfix_datetime_get_seconds_since_epoch( const nvIPFIX_datetime_t * a_datetime, int a_epoch_year, int a_epoch_month );
+nvIPFIX_U32 nvipfix_datetime_get_seconds_since_epoch( const nvIPFIX_datetime_t * a_datetime,
+		int a_epoch_year, int a_epoch_month );
 
 /**
  *
@@ -402,6 +412,28 @@ time_t nvipfix_datetime_add_timespan( nvIPFIX_datetime_t * a_datetime, const nvI
  * @return
  */
 time_t nvipfix_datetime_to_ctime( const nvIPFIX_datetime_t * a_datetime );
+
+/**
+ *
+ * @param a_datetime
+ * @param a_ctime
+ * @return
+ */
+bool nvipfix_ctime_to_datetime( nvIPFIX_datetime_t * a_datetime, const time_t * a_ctime );
+
+/**
+ *
+ * @param a_timespan
+ * @return
+ */
+nvIPFIX_I64 nvipfix_timespan_get_minutes( const nvIPFIX_timespan_t * a_timespan );
+
+/**
+ *
+ * @param a_timespan
+ * @return
+ */
+nvIPFIX_I64 nvipfix_timespan_get_seconds( const nvIPFIX_timespan_t * a_timespan );
 
 /**
  *
