@@ -268,19 +268,20 @@ static int nvipfix_import_conn_stat_handler( void * a_arg, uint64_t a_fields, nv
 			.protocol = a_connStat->conn_proto,
 			.ethernetType = a_connStat->conn_ether_type,
 			.tcpControlBits = NVIPFIX_NVC_TCP_STATE_TO_FLAGS( a_connStat->conn_state ),
+            .ingressInterface = a_connStat->conn_client_switch_port,
+            .egressInterface = a_connStat->conn_server_switch_port,
+            .responderOctets = a_connStat->conn_bytes_recv,
+            .initiatorOctets = a_connStat->conn_bytes_sent,
+            .transportOctetDeltaCount = a_connStat->conn_bytes_total,
         };
     
-//		nvIPFIX_U32 ingressInterface;
-//		nvIPFIX_U32 egressInterface;
+        data.flowDuration = NVIPFIX_TIMESPAN_SET_NANOSECONDS( a_connStat->conn_dur );
+        data.latency = NVIPFIX_TIMESPAN_SET_NANOSECONDS( a_connStat->conn_avg_latency );
+        
 //		nvIPFIX_datetime_t flowStart;
 //		nvIPFIX_datetime_t flowEnd;
-//		nvIPFIX_timespan_t flowDuration;
-//		nvIPFIX_timespan_t latency;
 //		nvIPFIX_BYTE dscp;
-//		nvIPFIX_U64 initiatorOctets;
-//		nvIPFIX_U64 responderOctets;
 //		nvIPFIX_U64 layer2SegmentId;
-//		nvIPFIX_U64 transportOctetDeltaCount;
 //
 //		nvIPFIX_mac_address_t sourceMac;
 //		nvIPFIX_ip_address_t sourceIp;
@@ -289,6 +290,12 @@ static int nvipfix_import_conn_stat_handler( void * a_arg, uint64_t a_fields, nv
 //		nvIPFIX_mac_address_t destinationMac;
 //		nvIPFIX_ip_address_t destinationIp;
 //		nvIPFIX_U16 destinationPort;
+
+        nvIPFIX_data_record_list_t * list = nvipfix_data_list_add_copy( *listPtr, &data );
+        
+        if (list != NULL) {
+            *listPtr = list;
+        }
     }
     
     return 0;

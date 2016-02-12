@@ -29,6 +29,10 @@
 #include "include/log.h"
 
 
+#define NVIPFIX_LOG_CATEGORY_NAME_MAIN "nvipfix.log.app"
+#define NVIPFIX_LOG_CATEGORY_NAME_ERROR "nvipfix.log.app.error"
+
+
 static void nvipfix_log_init( void );
 static void nvipfix_log_cleanup( void );
 static void nvipfix_log( int a_priority, const char * a_fmt, va_list * args );
@@ -37,10 +41,12 @@ static void nvipfix_log_message( int a_priority, const char * a_message );
 
 
 enum {
-	SizeofVariadicBufferSize = 1024
+	SizeofVariadicBuffer = 1024
 };
 
+
 static log4c_category_t * Category;
+static log4c_category_t * CategoryError;
 
 
 void nvipfix_tlog_debug( const nvIPFIX_TCHAR * a_fmt, ... )
@@ -131,7 +137,8 @@ void nvipfix_log_init( void )
 	{
 		if (!isInitialized) {
 			log4c_init();
-			Category = log4c_category_get( "nvipfix.app" );
+			Category = log4c_category_get( NVIPFIX_LOG_CATEGORY_NAME_MAIN );
+			CategoryError = log4c_category_get( NVIPFIX_LOG_CATEGORY_NAME_ERROR );
 			atexit( nvipfix_log_cleanup );
 			isInitialized = true;
 		}
@@ -145,7 +152,7 @@ void nvipfix_log_cleanup( void )
 
 void nvipfix_log( int a_priority, const char * a_fmt, va_list * args )
 {
-	char buffer[SizeofVariadicBufferSize + 1];
+	char buffer[SizeofVariadicBuffer + 1];
 
 	if (vsnprintf( buffer, sizeof buffer, a_fmt, *args ) > 0) {
 		nvipfix_log_message( a_priority, buffer );
@@ -155,10 +162,10 @@ void nvipfix_log( int a_priority, const char * a_fmt, va_list * args )
 void nvipfix_tlog( int a_priority, const nvIPFIX_TCHAR * a_fmt, va_list * args )
 {
 #ifdef NVIPFIX_DEF_UNICODE
-	wchar_t buffer[SizeofVariadicBufferSize + 1];
+	wchar_t buffer[SizeofVariadicBuffer + 1];
 
 	if (vswprintf( buffer, (sizeof buffer) / sizeof (wchar_t), a_fmt, *args ) > 0) {
-		char bufferA[SizeofVariadicBufferSize + 1];
+		char bufferA[SizeofVariadicBuffer + 1];
 		mbstate_t state = { 0 };
 
 		const wchar_t * bufferPtr = buffer;
@@ -175,5 +182,14 @@ void nvipfix_tlog( int a_priority, const nvIPFIX_TCHAR * a_fmt, va_list * args )
 void nvipfix_log_message( int a_priority, const char * a_message )
 {
 	nvipfix_log_init();
-	log4c_category_log( Category, a_priority, "%s", a_message );
+
+	#pragma omp critical (nvipfixCritical_LogLog)
+	{
+		if (a_priority <= LOG4C_PRIORITY_ERROR) {
+			log4c_category_log( CategoryError, a_priority, "%s", a_message );
+		}
+		else {
+			log4c_category_log( Category, a_priority, "%s", a_message );
+		}
+	}
 }

@@ -10,31 +10,20 @@
 		<reread>1</reread>
 	</config>
 
-	<category name="root" priority="notice"/>
-        <category name="nvipfix" priority="error" appender="stdout" />
+	<rollingpolicy name="nvipfix_rollingpolicy" type="sizewin" maxsize="1048576" maxnum="9" />
+	<rollingpolicy name="nvipfix_error_rollingpolicy" type="sizewin" maxsize="1048576" maxnum="9" />
 
-	<rollingpolicy name="myrollingpolicy" type="sizewin" maxsize="1024" maxnum="10" />
-
-	<appender name="myrollingfileappender" type="rollingfile" logdir="." prefix="myprefix" layout="dated" rollingpolicy="myrollingpolicy" />
+	<appender name="nvipfix_rollingfileappender" type="rollingfile" logdir="." prefix="nvipfix.log" layout="dated" rollingpolicy="nvipfix_rollingpolicy" />
+	<appender name="nvipfix_error_rollingfileappender" type="rollingfile" logdir="." prefix="nvipfix.error.log" layout="dated" rollingpolicy="nvipfix_error_rollingpolicy" />
 	
 	<appender name="stdout" type="stream" layout="basic"/>
 	<appender name="stderr" type="stream" layout="dated"/>
 	<appender name="syslog" type="syslog" layout="basic"/>
 
-	<appender name="s13file" type="s13_file" layout="basic"/>
-	<appender name="plain_stderr" type="s13_stderr" layout="none"/>
-	<appender name="cat_stderr" type="s13_stderr" layout="catlayout"/>
-	<appender name="xml_stderr" type="s13_stderr" layout="xmllayout"/>
-        <appender name="user_stderr" type="s13_stderr" layout="userlayout"/>
-
 	<layout name="basic" type="basic"/>
 	<layout name="dated" type="dated"/>
-	
-	<layout name="catlayout" type="s13_cat"/>
-	<layout name="xmllayout" type="s13_xml"/>
-        <layout name="none" type="s13_none"/>
-	<layout name="userlayout" type="s13_userloc"/>
-	
-	<category name="nvipfix.app" priority="debug" appender="cat_stderr" />
 
+	<category name="nvipfix.log" priority="trace" appender="stdout" />
+	<category name="nvipfix.log.app" priority="trace" appender="nvipfix_rollingfileappender" />
+	<category name="nvipfix.log.app.error" priority="error" appender="nvipfix_error_rollingfileappender" />
 </log4c>

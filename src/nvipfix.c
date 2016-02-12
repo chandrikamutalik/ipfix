@@ -34,7 +34,9 @@
 #ifdef NVIPFIX_DEF_POSIX
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/resource.h>
 #include <unistd.h>
+#include <fcntl.h>
 #endif
 
 
@@ -56,7 +58,7 @@ enum {
 };
 
 
-NVIPFIX_TIMESPAN_INIT_FROM_SECONDS( ExportDuration, 60 );
+NVIPFIX_TIMESPAN_INIT_FROM_SECONDS( ExportDuration, 1 );
 
 
 int main_daemon( void );
@@ -65,7 +67,7 @@ int main_daemon( void );
 void Usage()
 {
 	printf( "nvIPFIX %s\n", NVIPFIX_VERSION_STRING );
-	puts( "Usage: nvIPFIX [[-fdatafile] <start_ts> <end_ts>] [daemon]" );
+	puts( "Usage: nvIPFIX [[-fdatafile] <start_ts> <end_ts>] [daemon [stop]]" );
 	puts( "\tdatafile - JSON file (for debug purpose)" );
 	puts( "\tstart_ts/end_ts - ISO 8601 datetime (YYYY-MM-DDTHH:mm:SS)" );
 }
@@ -127,6 +129,30 @@ int main_daemon( void )
 			result = NV_IPFIX_RETURN_CODE_START_DAEMON_ERROR;
 		}
 		else {
+			struct rlimit rlimit = { 0 };
+
+			if (getrlimit( RLIMIT_NOFILE, &rlimit ) == 0) {
+				if (rlimit.rlim_max == RLIM_INFINITY) {
+					rlimit.rlim_max = FOPEN_MAX;
+				}
+
+				for (int i = 0; i < rlimit.rlim_max; i++) {
+					close( i );
+				}
+			}
+			else {
+				close( STDIN_FILENO );
+				close( STDOUT_FILENO );
+				close( STDERR_FILENO );
+			}
+
+			int stdFileHnadle = open( "/dev/null", O_RDWR );
+
+			if (stdFileHnadle == 0) {
+				dup( stdFileHnadle );
+				dup( stdFileHnadle );
+			}
+
 			time_t startT = time( NULL );
 
 			while (true) {

@@ -57,6 +57,10 @@
 #define NVIPFIX_TIMESPAN_GET_SECONDS( a_varName ) \
 		((a_varName)->microseconds / (NVIPFIX_MICROSECONDS_PER_MILLISECOND	* NVIPFIX_MILLISECONDS_PER_SECOND))
 
+#define NVIPFIX_TIMESPAN_SET_NANOSECONDS( a_varName, a_nanoseconds ) \
+	(a_varName).microseconds = (a_nanoseconds) / NVIPFIX_NANOSECONDS_PER_MICROSECOND; \
+	(a_varName).hasValue = true;
+
 #define NVIPFIX_ARGSF_IP_ADDRESS( a ) \
 	((a).value >> 24) & 0xff, ((a).value >> 16) & 0xff, ((a).value >> 8) & 0xff, (a).value & 0xff
 
