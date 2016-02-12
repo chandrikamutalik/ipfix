@@ -37,6 +37,12 @@
 #define NVIPFIX_IMPORT_ITEM( a_name, a_field, a_parseValue ) { .name = a_name, \
 	.offset = offsetof( nvIPFIX_data_record_t, a_field ), .parseValue = a_parseValue }
 
+#define NVIPFIX_NVC_TCP_STATE_TO_FLAGS( a_state ) ((a_state) == nvc_TCP_STATE_SYN ? NV_IPFIX_TCP_CONTROL_FLAG_SYN \
+    : (a_state) == nvc_TCP_STATE_EST ? NV_IPFIX_TCP_CONTROL_FLAG_ACK \
+    : (a_state) == nvc_TCP_STATE_FIN ? NV_IPFIX_TCP_CONTROL_FLAG_FIN \
+    : (a_state) == nvc_TCP_STATE_RST ? NV_IPFIX_TCP_CONTROL_FLAG_RST \
+    : NV_IPFIX_TCP_CONTROL_FLAG_NONE)        
+
 
 typedef struct {
 	const char * name;
@@ -247,8 +253,44 @@ nvIPFIX_data_record_list_t * nvipfix_import_file( const nvIPFIX_CHAR * a_fileNam
 
 static int nvipfix_import_conn_stat_handler( void * a_arg, uint64_t a_fields, nvc_conn_t * a_connStat )
 {
-    NVIPFIX_LOG_DEBUG( "%" PRId32 "-> %" PRId32, a_connStat->conn_client_switch_port, a_connStat->conn_server_switch_port );
+    NVIPFIX_LOG_DEBUG( "%" PRId32 "-> %" PRId32 " %d %d %d %d",
+    		a_connStat->conn_client_switch_port, a_connStat->conn_server_switch_port,
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 0),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 1),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 2),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 3),
+			);
 
+    if (a_connStat != NULL) {
+    	nvIPFIX_data_record_list_t * * listPtr = a_arg;
+    	nvIPFIX_data_record_t data = {
+			.vlanId = a_connStat->conn_vlan,
+			.protocol = a_connStat->conn_proto,
+			.ethernetType = a_connStat->conn_ether_type,
+			.tcpControlBits = NVIPFIX_NVC_TCP_STATE_TO_FLAGS( a_connStat->conn_state ),
+        };
+    
+//		nvIPFIX_U32 ingressInterface;
+//		nvIPFIX_U32 egressInterface;
+//		nvIPFIX_datetime_t flowStart;
+//		nvIPFIX_datetime_t flowEnd;
+//		nvIPFIX_timespan_t flowDuration;
+//		nvIPFIX_timespan_t latency;
+//		nvIPFIX_BYTE dscp;
+//		nvIPFIX_U64 initiatorOctets;
+//		nvIPFIX_U64 responderOctets;
+//		nvIPFIX_U64 layer2SegmentId;
+//		nvIPFIX_U64 transportOctetDeltaCount;
+//
+//		nvIPFIX_mac_address_t sourceMac;
+//		nvIPFIX_ip_address_t sourceIp;
+//		nvIPFIX_U16 sourcePort;
+//
+//		nvIPFIX_mac_address_t destinationMac;
+//		nvIPFIX_ip_address_t destinationIp;
+//		nvIPFIX_U16 destinationPort;
+    }
+    
     return 0;
 }
 
@@ -300,10 +342,15 @@ nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host,
     uint64_t filterFields = 0;
     nvc_format_args_t format = { { 0 } };
     uint64_t formatFields = 0;
+    filter.conn_args.start_time = nvipfix_datetime_to_ctime( &a_startTs );
+    nvc_FIELD_FLAG_SET( filterFields, nvc_conn_args_start_time );
+    filter.conn_args.end_time = nvipfix_datetime_to_ctime( &a_endTs );
+    nvc_FIELD_FLAG_SET( filterFields, nvc_conn_args_end_time );
+    
     nvcError = nvc_show_conn_stat( &io, 
         filterFields, &filter, 
         formatFields, &format,
-        nvipfix_import_conn_stat_handler, result,
+        nvipfix_import_conn_stat_handler, &result,
 		&nvcResult );
 
     NVIPFIX_ERROR_RAISE_IF( nvcError != 0, error, NV_IPFIX_ERROR_CODE_NVC_CONN_STAT, ConnStat, 
