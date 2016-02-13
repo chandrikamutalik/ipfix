@@ -45,6 +45,8 @@
 #define nvc_conn_args_start_time ((uint64_t)1 << 1)
 #define nvc_conn_args_end_time ((uint64_t)1 << 2)
 
+#define	nvc_format_args_limit_output	((uint64_t)1 << 2)
+
 
 #ifndef __SVR4
 typedef enum { B_FALSE, B_TRUE } boolean_t;

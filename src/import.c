@@ -367,16 +367,19 @@ nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host,
 
     nvc_conn_t filter = { { 0 } };
     uint64_t filterFields = 0;
-    nvc_format_args_t format = { { 0 } };
-    uint64_t formatFields = 0;
     filter.conn_args.start_time = nvipfix_datetime_to_ctime( a_startTs );
     nvc_FIELD_FLAG_SET( filterFields, nvc_conn_args_start_time );
     filter.conn_args.end_time = nvipfix_datetime_to_ctime( a_endTs );
     nvc_FIELD_FLAG_SET( filterFields, nvc_conn_args_end_time );
-    
+
+    nvc_format_args_t format = { { 0 } };
+    uint64_t formatFields = 0;
+    format.limit_output = UINT32_MAX;
+    nvc_FIELD_FLAG_SET( formatFields, nvc_format_args_limit_output );
+
     NVIPFIX_LOG_DEBUG( "start time = %d, end time = %d, diff = %d",
     		(unsigned) filter.conn_args.start_time, (unsigned) filter.conn_args.end_time,
-			(int)(filter.conn_args.start_time - filter.conn_args.end_time) );
+			(int)(filter.conn_args.end_time - filter.conn_args.start_time) );
 
     nvcError = nvc_show_conn_stat( &io, 
         filterFields, &filter, 
