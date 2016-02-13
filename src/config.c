@@ -174,7 +174,7 @@ nvIPFIX_collector_info_t * nvipfix_config_collectors_get( size_t * a_count )
 			collector = collector->next;
 		}
 
-		NVIPFIX_LOG_DEBUG( "collectors count = %d", count );
+		NVIPFIX_LOG_DEBUG( "collectors count = %d", (unsigned)count );
 
 		size_t bufSize = count * SizeofCollectorInfo;
 		size_t bufIndex = 0;

@@ -132,11 +132,11 @@ nvIPFIX_data_record_list_t * nvipfix_import( FILE * a_file )
 		} while (!feof( a_file ));
 
 		if (buffer != NULL) {
-			NVIPFIX_LOG_DEBUG0( "data len = %d", strlen( buffer ) );
+			NVIPFIX_LOG_DEBUG0( "data len = %d", (unsigned)strlen( buffer ) );
 			nvIPFIX_string_list_t * tokens = nvipfix_string_split( buffer, "[]" );
 
 			if (tokens != NULL) {
-				NVIPFIX_LOG_DEBUG0( "tokens count = %d", tokens->count );
+				NVIPFIX_LOG_DEBUG0( "tokens count = %d", (unsigned)tokens->count );
 
 				nvIPFIX_string_list_item_t * token = tokens->head;
 
@@ -149,7 +149,7 @@ nvIPFIX_data_record_list_t * nvipfix_import( FILE * a_file )
 							nvIPFIX_string_list_t * records = nvipfix_string_split( token->value, "{" );
 
 							if (records != NULL) {
-								NVIPFIX_LOG_DEBUG0( "records count = %d", records->count );
+								NVIPFIX_LOG_DEBUG0( "records count = %d", (unsigned)records->count );
 
 								nvIPFIX_string_list_item_t * record = records->head;
 

@@ -352,15 +352,16 @@ nvIPFIX_error_t nvipfix_export(
 		NVIPFIX_TLOG_TRACE(
 				"%d.%d.%d.%d:%d -> %d.%d.%d.%d:%d %d %d-%d %d %02x:%02x:%02x:%02x:%02x:%02x",
 				NVIPFIX_ARGSF_IP_ADDRESS( record->sourceIp ),
-				record->sourcePort,
+				(unsigned)record->sourcePort,
 				NVIPFIX_ARGSF_IP_ADDRESS( record->destinationIp ),
-				record->destinationPort, record->transportOctetDeltaCount,
-				data.flowStartSeconds, data.flowEndSeconds,
-				data.flowDurationMilliseconds,
+				(unsigned)record->destinationPort, (unsigned)record->transportOctetDeltaCount,
+				(unsigned)data.flowStartSeconds, (unsigned)data.flowEndSeconds,
+				(unsigned)data.flowDurationMilliseconds,
 				NVIPFIX_ARGSF_MAC_ADDRESS( record->sourceMac ));
 
-		if (!fBufAppend( buffer, (uint8_t *) &data, sizeof (nvIPFIX_export_data_t), NULL )) {
+		if (!fBufAppend( buffer, (uint8_t *) &data, sizeof (nvIPFIX_export_data_t), &fbError )) {
 			NVIPFIX_TLOG_ERROR( "%s: fBufAppend", __func__ );
+			g_clear_error( &fbError );
 		}
 		else {
 			recordCount++;
