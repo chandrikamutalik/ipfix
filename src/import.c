@@ -357,12 +357,8 @@ nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host,
     NVIPFIX_ERROR_RAISE_IF( nvcError != 0, error, NV_IPFIX_ERROR_CODE_NVC_AUTH, Auth, 
         "nvc_authenticate/nvc_check_uid: %d", nvcError );
 
-<<<<<<< HEAD
     NVIPFIX_ERROR_RAISE_IF( nvcResult.res_code != 0, error, NV_IPFIX_ERROR_CODE_NVC_AUTH, Auth,
         "%s", nvcResult.res_msg );
-=======
-	NVIPFIX_LOG_DEBUG( "NV C API auth result = %d, [%s]", nvcResult.res_code, nvcResult.res_msg );
->>>>>>> master
 
     nvc_conn_t filter = { { 0 } };
     uint64_t filterFields = 0;
