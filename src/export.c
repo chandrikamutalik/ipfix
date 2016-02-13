@@ -264,10 +264,6 @@ nvIPFIX_error_t nvipfix_export(
 	NVIPFIX_ERROR_RAISE_IF( template == NULL, error, NV_IPFIX_ERROR_CODE_ALLOCATE_TEMPLATE, TemplateAlloc,
 			"%s", "Template alloc failed" );
 
-	fbTemplate_t * statsTemplate = fbTemplateAlloc( InfoModel );
-	NVIPFIX_ERROR_RAISE_IF( statsTemplate == NULL, error, NV_IPFIX_ERROR_CODE_ALLOCATE_TEMPLATE, StatsTemplateAlloc,
-			"%s", "Stats template alloc failed" );
-
 	GError fbErrorV = { 0 };
 	GError * fbError = &fbErrorV;
 
@@ -281,6 +277,10 @@ nvIPFIX_error_t nvipfix_export(
 			error, NV_IPFIX_ERROR_CODE_EXPORT_SESSION_ADD_TEMPLATE, SessionAddTemplate,
 			"%s", "Session add template failed" );
 
+	fbTemplate_t * statsTemplate = fbTemplateAlloc( InfoModel );
+	NVIPFIX_ERROR_RAISE_IF( statsTemplate == NULL, error, NV_IPFIX_ERROR_CODE_ALLOCATE_TEMPLATE, StatsTemplateAlloc,
+			"%s", "Stats template alloc failed" );
+
 	NVIPFIX_ERROR_RAISE_IF( !fbTemplateAppendSpecArray( statsTemplate, StatsTemplate, UINT32_MAX, &fbError ),
 			error, NV_IPFIX_ERROR_CODE_EXPORT_TEMPLATE_APPEND_SPEC, StatsTemplateAppendSpec,
 			"%s", "Stats template append spec failed" );
@@ -289,7 +289,7 @@ nvIPFIX_error_t nvipfix_export(
 	uint16_t statsTemplateIdExt = fbSessionAddTemplate( session, FALSE, FB_TID_AUTO, statsTemplate, &fbError );
 	NVIPFIX_ERROR_RAISE_IF( statsTemplateId == 0 || statsTemplateIdExt == 0,
 			error, NV_IPFIX_ERROR_CODE_EXPORT_SESSION_ADD_TEMPLATE, SessionAddTemplate,
-			"%s", "Session add template failed" );
+			"%s", "Session add stats template failed" );
 
 	NVIPFIX_TLOG_DEBUG( "%s: templateId = %d, stats templateId = %d", (unsigned)templateId, (unsigned)statsTemplateId );
 
