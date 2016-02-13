@@ -374,6 +374,10 @@ nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host,
     filter.conn_args.end_time = nvipfix_datetime_to_ctime( a_endTs );
     nvc_FIELD_FLAG_SET( filterFields, nvc_conn_args_end_time );
     
+    NVIPFIX_LOG_DEBUG( "start time = %d, end time = %d, diff = %d",
+    		(unsigned) filter.conn_args.start_time, (unsigned) filter.conn_args.end_time,
+			(int)(filter.conn_args.start_time - filter.conn_args.end_time) );
+
     nvcError = nvc_show_conn_stat( &io, 
         filterFields, &filter, 
         formatFields, &format,
