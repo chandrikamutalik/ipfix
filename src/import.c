@@ -359,11 +359,11 @@ nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host,
 		nvcError = nvc_check_uid( &io, userName, sizeof userName, &nvcResult );
 	}
 
-    NVIPFIX_ERROR_RAISE_IF( nvcError != 0, error, NV_IPFIX_ERROR_CODE_NVC_AUTH, Auth, 
-        "nvc_authenticate/nvc_check_uid: %d", nvcError );
-
     NVIPFIX_ERROR_RAISE_IF( nvcResult.res_code != 0, error, NV_IPFIX_ERROR_CODE_NVC_AUTH, Auth,
         "%s", nvcResult.res_msg );
+
+    NVIPFIX_ERROR_RAISE_IF( nvcError != 0, error, NV_IPFIX_ERROR_CODE_NVC_AUTH, Auth, 
+        "nvc_authenticate/nvc_check_uid: %d", nvcError );
 
     nvc_conn_t filter = { { 0 } };
     uint64_t filterFields = 0;
@@ -374,7 +374,7 @@ nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host,
 
     nvc_format_args_t format = { { 0 } };
     uint64_t formatFields = 0;
-    format.limit_output = UINT32_MAX;
+    format.limit_output = 10000;
     nvc_FIELD_FLAG_SET( formatFields, nvc_format_args_limit_output );
 
     NVIPFIX_LOG_DEBUG( "start time = %d, end time = %d, diff = %d",
@@ -387,11 +387,11 @@ nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host,
         nvipfix_import_conn_stat_handler, &result,
 		&nvcResult );
 
-    NVIPFIX_ERROR_RAISE_IF( nvcError != 0, error, NV_IPFIX_ERROR_CODE_NVC_CONN_STAT, ConnStat, 
-        "nvc_show_conn_stat: %d", nvcError );
-
     NVIPFIX_ERROR_RAISE_IF( nvcResult.res_code != 0, error, NV_IPFIX_ERROR_CODE_NVC_CONN_STAT, ConnStat,
         "%s", nvcResult.res_msg );
+
+    NVIPFIX_ERROR_RAISE_IF( nvcError != 0, error, NV_IPFIX_ERROR_CODE_NVC_CONN_STAT, ConnStat, 
+        "nvc_show_conn_stat: %d", nvcError );
 
     NVIPFIX_ERROR_HANDLER( ConnStat );
     nvc_logout( &io );
