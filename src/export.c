@@ -268,7 +268,8 @@ nvIPFIX_error_t nvipfix_export(
 	NVIPFIX_ERROR_RAISE_IF( exporter == NULL, error, NV_IPFIX_ERROR_CODE_ALLOCATE_TEMPLATE, StatsTemplateAlloc,
 			"%s", "Stats template alloc failed" );
 
-	GError * fbError = NULL;
+	GError fbErrorV = { 0 };
+	GError * fbError = &fbErrorV;
 
 	NVIPFIX_ERROR_RAISE_IF( !fbTemplateAppendSpecArray( template, Template, UINT32_MAX, &fbError ),
 			error, NV_IPFIX_ERROR_CODE_EXPORT_TEMPLATE_APPEND_SPEC, TemplateAppendSpec,

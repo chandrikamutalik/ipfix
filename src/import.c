@@ -37,11 +37,17 @@
 #define NVIPFIX_IMPORT_ITEM( a_name, a_field, a_parseValue ) { .name = a_name, \
 	.offset = offsetof( nvIPFIX_data_record_t, a_field ), .parseValue = a_parseValue }
 
-#define NVIPFIX_NVC_TCP_STATE_TO_FLAGS( a_state ) ((a_state) == nvc_TCP_STATE_SYN ? NV_IPFIX_TCP_CONTROL_FLAG_SYN \
+#define NVIPFIX_NVC_GET_TCP_FLAGS_FROM_STATE( a_state ) ((a_state) == nvc_TCP_STATE_SYN ? NV_IPFIX_TCP_CONTROL_FLAG_SYN \
     : (a_state) == nvc_TCP_STATE_EST ? NV_IPFIX_TCP_CONTROL_FLAG_ACK \
     : (a_state) == nvc_TCP_STATE_FIN ? NV_IPFIX_TCP_CONTROL_FLAG_FIN \
     : (a_state) == nvc_TCP_STATE_RST ? NV_IPFIX_TCP_CONTROL_FLAG_RST \
     : NV_IPFIX_TCP_CONTROL_FLAG_NONE)        
+
+#define NVIPFIX_IN6_ADDR_TO_IP_ADDRESS( a_ipAddress, a_in6Addr ) \
+	(a_ipAddress).value = (*((uint8_t *)&(a_in6Addr) + 12)) << 24; \
+	(a_ipAddress).value |= (*((uint8_t *)&(a_in6Addr) + 13)) << 16; \
+	(a_ipAddress).value |= (*((uint8_t *)&(a_in6Addr) + 14)) << 8; \
+	(a_ipAddress).value |= (*((uint8_t *)&(a_in6Addr) + 15)) << 0
 
 
 typedef struct {
@@ -253,24 +259,15 @@ nvIPFIX_data_record_list_t * nvipfix_import_file( const nvIPFIX_CHAR * a_fileNam
 
 static int nvipfix_import_conn_stat_handler( void * a_arg, uint64_t a_fields, nvc_conn_t * a_connStat )
 {
-    NVIPFIX_LOG_DEBUG( "%" PRId32 "-> %" PRId32 " %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d",
-    		a_connStat->conn_client_switch_port, a_connStat->conn_server_switch_port,
-			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 0),
-			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 1),
-			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 2),
-			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 3),
-			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 4),
-			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 5),
-			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 6),
-			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 7),
-			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 8),
-			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 9),
-			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 10),
-			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 11),
+    NVIPFIX_LOG_DEBUG( "%d.%d.%d.%d -> %d.%d.%d.%d",
 			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 12),
 			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 13),
 			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 14),
-			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 15)
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 15),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_server_ip) + 12),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_server_ip) + 13),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_server_ip) + 14),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_server_ip) + 15)
 			);
 
     if (a_connStat != NULL) {
@@ -279,7 +276,7 @@ static int nvipfix_import_conn_stat_handler( void * a_arg, uint64_t a_fields, nv
 			.vlanId = a_connStat->conn_vlan,
 			.protocol = a_connStat->conn_proto,
 			.ethernetType = a_connStat->conn_ether_type,
-			.tcpControlBits = NVIPFIX_NVC_TCP_STATE_TO_FLAGS( a_connStat->conn_state ),
+			.tcpControlBits = NVIPFIX_NVC_GET_TCP_FLAGS_FROM_STATE( a_connStat->conn_state ),
             .ingressInterface = a_connStat->conn_client_switch_port,
             .egressInterface = a_connStat->conn_server_switch_port,
             .responderOctets = a_connStat->conn_bytes_recv,
@@ -290,17 +287,18 @@ static int nvipfix_import_conn_stat_handler( void * a_arg, uint64_t a_fields, nv
         NVIPFIX_TIMESPAN_SET_NANOSECONDS( data.flowDuration, a_connStat->conn_dur );
         NVIPFIX_TIMESPAN_SET_NANOSECONDS( data.latency, a_connStat->conn_avg_latency );
         
+        NVIPFIX_IN6_ADDR_TO_IP_ADDRESS( data.sourceIp, a_connStat->conn_client_ip );
+        NVIPFIX_IN6_ADDR_TO_IP_ADDRESS( data.destinationIp, a_connStat->conn_server_ip );
+
 //		nvIPFIX_datetime_t flowStart;
 //		nvIPFIX_datetime_t flowEnd;
 //		nvIPFIX_BYTE dscp;
 //		nvIPFIX_U64 layer2SegmentId;
 //
 //		nvIPFIX_mac_address_t sourceMac;
-//		nvIPFIX_ip_address_t sourceIp;
 //		nvIPFIX_U16 sourcePort;
 //
 //		nvIPFIX_mac_address_t destinationMac;
-//		nvIPFIX_ip_address_t destinationIp;
 //		nvIPFIX_U16 destinationPort;
 
         nvIPFIX_data_record_list_t * list = nvipfix_data_list_add_copy( *listPtr, &data );
