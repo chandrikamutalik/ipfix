@@ -253,12 +253,22 @@ nvIPFIX_data_record_list_t * nvipfix_import_file( const nvIPFIX_CHAR * a_fileNam
 
 static int nvipfix_import_conn_stat_handler( void * a_arg, uint64_t a_fields, nvc_conn_t * a_connStat )
 {
-    NVIPFIX_LOG_DEBUG( "%" PRId32 "-> %" PRId32 " %d %d %d %d",
+    NVIPFIX_LOG_DEBUG( "%" PRId32 "-> %" PRId32 " %d %d %d %d %d %d %d %d %d %d %d %d %d %d",
     		a_connStat->conn_client_switch_port, a_connStat->conn_server_switch_port,
 			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 0),
 			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 1),
 			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 2),
-			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 3)
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 3),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 4),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 5),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 6),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 7),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 8),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 9),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 10),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 11),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 12),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 13)
 			);
 
     if (a_connStat != NULL) {
@@ -347,6 +357,9 @@ nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host,
     NVIPFIX_ERROR_RAISE_IF( nvcError != 0, error, NV_IPFIX_ERROR_CODE_NVC_AUTH, Auth, 
         "nvc_authenticate/nvc_check_uid: %d", nvcError );
 
+    NVIPFIX_ERROR_RAISE_IF( nvcResult.res_code != 0, error, NV_IPFIX_ERROR_CODE_NVC_AUTH, Auth,
+        "%s", nvcResult.res_msg );
+
     nvc_conn_t filter = { { 0 } };
     uint64_t filterFields = 0;
     nvc_format_args_t format = { { 0 } };
@@ -364,6 +377,9 @@ nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host,
 
     NVIPFIX_ERROR_RAISE_IF( nvcError != 0, error, NV_IPFIX_ERROR_CODE_NVC_CONN_STAT, ConnStat, 
         "nvc_show_conn_stat: %d", nvcError );
+
+    NVIPFIX_ERROR_RAISE_IF( nvcResult.res_code != 0, error, NV_IPFIX_ERROR_CODE_NVC_CONN_STAT, ConnStat,
+        "%s", nvcResult.res_msg );
 
     NVIPFIX_ERROR_HANDLER( ConnStat );
     nvc_logout( &io );
