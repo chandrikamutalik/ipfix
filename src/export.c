@@ -117,6 +117,8 @@ static void nvipfix_export_cleanup( void );
 static const nvIPFIX_collector_t * nvipfix_export_get_collector( const nvIPFIX_hashtable_key_t * a_key );
 
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 bool nvipfix_export_init( void )
 {
 	static volatile bool isInitialized = false;
@@ -124,10 +126,7 @@ bool nvipfix_export_init( void )
 	#pragma omp critical (nvipfixCritical_ExportInit)
 	{
 		if (!isInitialized) {
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 			NVIPFIX_ERROR_INIT( error );
-#pragma GCC diagnostic pop
 
 			InfoModel = fbInfoModelAlloc();
 			NVIPFIX_ERROR_RAISE_IF( InfoModel == NULL, error, NV_IPFIX_ERROR_CODE_ALLOCATE_INFO_MODEL, InfoModel,
@@ -157,6 +156,7 @@ bool nvipfix_export_init( void )
 
 	return isInitialized;
 }
+#pragma GCC diagnostic pop
 
 void nvipfix_export_cleanup( void )
 {
@@ -170,14 +170,13 @@ static void nvipfix_export_free_collector( const void * a_collector )
 	free( (void *)a_collector );
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 const nvIPFIX_collector_t * nvipfix_export_get_collector( const nvIPFIX_hashtable_key_t * a_key )
 {
 	const nvIPFIX_collector_t * result = NULL;
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 	NVIPFIX_ERROR_INIT( error );
-#pragma GCC diagnostic pop
 
 	#pragma omp critical (nvipfixCritical_CollectorsTable)
 	{
@@ -212,6 +211,7 @@ const nvIPFIX_collector_t * nvipfix_export_get_collector( const nvIPFIX_hashtabl
 
 	return result;
 }
+#pragma GCC diagnostic pop
 
 nvIPFIX_error_t nvipfix_export(
 		const nvIPFIX_CHAR * a_host,
