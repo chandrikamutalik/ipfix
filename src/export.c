@@ -268,29 +268,29 @@ nvIPFIX_error_t nvipfix_export(
 	NVIPFIX_ERROR_RAISE_IF( statsTemplate == NULL, error, NV_IPFIX_ERROR_CODE_ALLOCATE_TEMPLATE, StatsTemplateAlloc,
 			"%s", "Stats template alloc failed" );
 
-	//GError * fbError = NULL;
+	GError * fbError = NULL;
 
-	NVIPFIX_ERROR_RAISE_IF( !fbTemplateAppendSpecArray( template, Template, UINT32_MAX, NULL ),
+	NVIPFIX_ERROR_RAISE_IF( !fbTemplateAppendSpecArray( template, Template, UINT32_MAX, &fbError ),
 			error, NV_IPFIX_ERROR_CODE_EXPORT_TEMPLATE_APPEND_SPEC, TemplateAppendSpec,
 			"%s", "Template append spec failed" );
 
-	NVIPFIX_ERROR_RAISE_IF( !fbTemplateAppendSpecArray( statsTemplate, StatsTemplate, UINT32_MAX, NULL ),
+	NVIPFIX_ERROR_RAISE_IF( !fbTemplateAppendSpecArray( statsTemplate, StatsTemplate, UINT32_MAX, &fbError ),
 			error, NV_IPFIX_ERROR_CODE_EXPORT_TEMPLATE_APPEND_SPEC, StatsTemplateAppendSpec,
 			"%s", "Stats template append spec failed" );
 
 	uint16_t templateId;
 	uint16_t templateIdExt;
 	NVIPFIX_ERROR_RAISE_IF(
-			(templateId = fbSessionAddTemplate( session, TRUE, FB_TID_AUTO, template, NULL )) == 0
-			|| (templateIdExt = fbSessionAddTemplate( session, FALSE, FB_TID_AUTO, template, NULL )) == 0,
+			(templateId = fbSessionAddTemplate( session, TRUE, FB_TID_AUTO, template, &fbError )) == 0
+			|| (templateIdExt = fbSessionAddTemplate( session, FALSE, FB_TID_AUTO, template, &fbError )) == 0,
 			error, NV_IPFIX_ERROR_CODE_EXPORT_SESSION_ADD_TEMPLATE, SessionAddTemplate,
 			"%s", "Session add template failed" );
 
 	uint16_t statsTemplateId;
 	uint16_t statsTemplateIdExt;
 	NVIPFIX_ERROR_RAISE_IF(
-			(statsTemplateId = fbSessionAddTemplate( session, TRUE, FB_TID_AUTO, statsTemplate, NULL )) == 0
-			|| (statsTemplateIdExt = fbSessionAddTemplate( session, FALSE, FB_TID_AUTO, statsTemplate, NULL )) == 0,
+			(statsTemplateId = fbSessionAddTemplate( session, TRUE, FB_TID_AUTO, statsTemplate, &fbError )) == 0
+			|| (statsTemplateIdExt = fbSessionAddTemplate( session, FALSE, FB_TID_AUTO, statsTemplate, &fbError )) == 0,
 			error, NV_IPFIX_ERROR_CODE_EXPORT_SESSION_ADD_TEMPLATE, SessionAddTemplate,
 			"%s", "Session add stats template failed" );
 
@@ -419,6 +419,8 @@ nvIPFIX_error_t nvipfix_export(
 	NVIPFIX_ERROR_HANDLER( CollectorGet );
 
 	NVIPFIX_ERROR_HANDLER( Init );
+
+	g_clear_error( &fbError );
 
 	return error;
 }
