@@ -45,9 +45,14 @@ enum {
 };
 
 
-static log4c_category_t * Category;
-static log4c_category_t * CategoryError;
+static log4c_category_t * Category = NULL;
+static log4c_category_t * CategoryError = NULL;
 
+
+void nvipfix_log_set_config_path( const nvIPFIX_CHAR * a_path )
+{
+
+}
 
 void nvipfix_tlog_debug( const nvIPFIX_TCHAR * a_fmt, ... )
 {
@@ -137,6 +142,7 @@ void nvipfix_log_init( void )
 	{
 		if (!isInitialized) {
 			log4c_init();
+			log4c_load( "" );
 			Category = log4c_category_get( NVIPFIX_LOG_CATEGORY_NAME_MAIN );
 			CategoryError = log4c_category_get( NVIPFIX_LOG_CATEGORY_NAME_ERROR );
 			atexit( nvipfix_log_cleanup );

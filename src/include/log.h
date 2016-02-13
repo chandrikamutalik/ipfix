@@ -44,41 +44,55 @@
 
 /**
  *
+ * @param a_path
+ */
+void nvipfix_log_set_config_path( const nvIPFIX_CHAR * a_path );
+
+/**
+ *
+ * @param a_fmt
  */
 void nvipfix_tlog_debug( const nvIPFIX_TCHAR * a_fmt, ... );
 
 /**
  *
+ * @param a_fmt
  */
 void nvipfix_log_debug( const nvIPFIX_CHAR * a_fmt, ... );
 
 /**
  *
+ * @param a_fmt
  */
 void nvipfix_tlog_info( const nvIPFIX_TCHAR * a_fmt, ... );
 
 /**
  *
+ * @param a_fmt
  */
 void nvipfix_log_info( const nvIPFIX_CHAR * a_fmt, ... );
 
 /**
  *
+ * @param a_fmt
  */
 void nvipfix_tlog_warning( const nvIPFIX_TCHAR * a_fmt, ... );
 
 /**
  *
+ * @param a_fmt
  */
 void nvipfix_log_warning( const nvIPFIX_CHAR * a_fmt, ... );
 
 /**
  *
+ * @param a_fmt
  */
 void nvipfix_tlog_error( const nvIPFIX_TCHAR * a_fmt, ... );
 
 /**
  *
+ * @param a_fmt
  */
 void nvipfix_log_error( const nvIPFIX_CHAR * a_fmt, ... );
 

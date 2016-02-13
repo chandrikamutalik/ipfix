@@ -67,7 +67,7 @@ int main_daemon( void );
 void Usage()
 {
 	printf( "nvIPFIX %s\n", NVIPFIX_VERSION_STRING );
-	puts( "Usage: nvIPFIX [[-fdatafile] <start_ts> <end_ts>] [daemon [stop]]" );
+	puts( "Usage: nvIPFIX [[-fdatafile] <start_ts> <end_ts>] [start|stop]" );
 	puts( "\tdatafile - JSON file (for debug purpose)" );
 	puts( "\tstart_ts/end_ts - ISO 8601 datetime (YYYY-MM-DDTHH:mm:SS)" );
 }
@@ -86,7 +86,7 @@ int main( int argc, char * argv[] )
 		argIndexTs = 2;
 		useFile = true;
 	}
-	else if (strcmp( "daemon", argv[1] ) == 0) {
+	else if (strcmp( "start", argv[1] ) == 0) {
 		return main_daemon();
 	}
 

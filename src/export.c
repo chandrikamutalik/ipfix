@@ -388,6 +388,8 @@ nvIPFIX_error_t nvipfix_export(
 
 	NVIPFIX_ERROR_HANDLER( SessionExportTemplates );
 
+	fBufFree( buffer );
+
 	NVIPFIX_ERROR_HANDLER( BufAlloc );
 
 	NVIPFIX_ERROR_HANDLER( SessionAddTemplate );
