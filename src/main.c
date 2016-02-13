@@ -46,11 +46,11 @@ void nvipfix_main_export( nvIPFIX_data_record_list_t * a_dataRecords,
 			}
 		}
 		else {
-			nvipfix_log_error( "no data" );
+			nvipfix_log_warning( "no data" );
 		}
 	}
 	else {
-		nvipfix_log_error( "no collector(s) defined" );
+		nvipfix_log_warning( "no collector(s) defined" );
 	}
 
 	nvipfix_config_collectors_free( collectors );
