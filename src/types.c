@@ -799,7 +799,9 @@ time_t nvipfix_datetime_add_timespan( nvIPFIX_datetime_t * a_datetime, const nvI
 
 	time_t result = mktime( &datetime );
 
+	nvIPFIX_timespan_t tzOffset = a_datetime->tzOffset;
 	NVIPFIX_DT_FROM_TM( a_datetime, datetime );
+	a_datetime->tzOffset = tzOffset;
 
 	return result;
 }

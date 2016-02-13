@@ -300,8 +300,9 @@ static int nvipfix_import_conn_stat_handler( void * a_arg, uint64_t a_fields, nv
         NVIPFIX_ETHER_ADDR_TO_MAC_ADDRESS( data.sourceMac, a_connStat->conn_client_mac_addr );
         NVIPFIX_ETHER_ADDR_TO_MAC_ADDRESS( data.destinationMac, a_connStat->conn_server_mac_addr );
 
-//		nvIPFIX_datetime_t flowStart;
-//		nvIPFIX_datetime_t flowEnd;
+        nvipfix_ctime_to_datetime( &(data.flowStart), (time_t *)&(a_connStat->conn_started_time) );
+        nvipfix_ctime_to_datetime( &(data.flowEnd), (time_t *)&(a_connStat->conn_ended_time) );
+
 //		nvIPFIX_BYTE dscp;
 //		nvIPFIX_U64 layer2SegmentId;
 //
