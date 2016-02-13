@@ -258,7 +258,7 @@ static int nvipfix_import_conn_stat_handler( void * a_arg, uint64_t a_fields, nv
 			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 0),
 			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 1),
 			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 2),
-			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 3),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 3)
 			);
 
     if (a_connStat != NULL) {
@@ -275,8 +275,8 @@ static int nvipfix_import_conn_stat_handler( void * a_arg, uint64_t a_fields, nv
             .transportOctetDeltaCount = a_connStat->conn_bytes_total,
         };
     
-        data.flowDuration = NVIPFIX_TIMESPAN_SET_NANOSECONDS( a_connStat->conn_dur );
-        data.latency = NVIPFIX_TIMESPAN_SET_NANOSECONDS( a_connStat->conn_avg_latency );
+        NVIPFIX_TIMESPAN_SET_NANOSECONDS( data.flowDuration, a_connStat->conn_dur );
+        NVIPFIX_TIMESPAN_SET_NANOSECONDS( data.latency, a_connStat->conn_avg_latency );
         
 //		nvIPFIX_datetime_t flowStart;
 //		nvIPFIX_datetime_t flowEnd;
@@ -301,6 +301,8 @@ static int nvipfix_import_conn_stat_handler( void * a_arg, uint64_t a_fields, nv
     return 0;
 }
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host, 
     const nvIPFIX_CHAR * a_login, const nvIPFIX_CHAR * a_password,
 	const nvIPFIX_datetime_t * a_startTs, const nvIPFIX_datetime_t * a_endTs )
@@ -349,9 +351,9 @@ nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host,
     uint64_t filterFields = 0;
     nvc_format_args_t format = { { 0 } };
     uint64_t formatFields = 0;
-    filter.conn_args.start_time = nvipfix_datetime_to_ctime( &a_startTs );
+    filter.conn_args.start_time = nvipfix_datetime_to_ctime( a_startTs );
     nvc_FIELD_FLAG_SET( filterFields, nvc_conn_args_start_time );
-    filter.conn_args.end_time = nvipfix_datetime_to_ctime( &a_endTs );
+    filter.conn_args.end_time = nvipfix_datetime_to_ctime( a_endTs );
     nvc_FIELD_FLAG_SET( filterFields, nvc_conn_args_end_time );
     
     nvcError = nvc_show_conn_stat( &io, 
@@ -374,6 +376,7 @@ nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host,
     
     return result;
 }
+#pragma GCC diagnostic pop
 
 #endif
 
