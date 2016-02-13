@@ -49,6 +49,10 @@
 	(a_ipAddress).value |= (*((uint8_t *)&(a_in6Addr) + 14)) << 8; \
 	(a_ipAddress).value |= (*((uint8_t *)&(a_in6Addr) + 15)) << 0
 
+#define NVIPFIX_ETHER_ADDR_TO_MAC_ADDRESS( a_macAddress, a_etherAddr ) \
+	memcpy( (a_macAddress).octets, &(a_etherAddr), sizeof (a_macAddress).octets ); \
+	(a_macAddress).hasValue = true
+
 
 typedef struct {
 	const char * name;
@@ -70,6 +74,7 @@ static const nvIPFIX_import_item_t * nvipfix_import_get_item( const char * );
 enum {
 	SizeofFileBuffer = 64 * 1024
 };
+
 
 static const nvIPFIX_import_item_t Items[] = {
 		NVIPFIX_IMPORT_ITEM( "vlan", vlanId, nvipfix_parse_u16 ),
@@ -259,7 +264,7 @@ nvIPFIX_data_record_list_t * nvipfix_import_file( const nvIPFIX_CHAR * a_fileNam
 
 static int nvipfix_import_conn_stat_handler( void * a_arg, uint64_t a_fields, nvc_conn_t * a_connStat )
 {
-    NVIPFIX_LOG_DEBUG( "%d.%d.%d.%d -> %d.%d.%d.%d",
+    NVIPFIX_LOG_TRACE( "%d.%d.%d.%d -> %d.%d.%d.%d",
 			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 12),
 			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 13),
 			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 14),
@@ -282,6 +287,8 @@ static int nvipfix_import_conn_stat_handler( void * a_arg, uint64_t a_fields, nv
             .responderOctets = a_connStat->conn_bytes_recv,
             .initiatorOctets = a_connStat->conn_bytes_sent,
             .transportOctetDeltaCount = a_connStat->conn_bytes_total,
+			.sourcePort = a_connStat->conn_client_port,
+			.destinationPort = a_connStat->conn_server_port
         };
     
         NVIPFIX_TIMESPAN_SET_NANOSECONDS( data.flowDuration, a_connStat->conn_dur );
@@ -290,16 +297,14 @@ static int nvipfix_import_conn_stat_handler( void * a_arg, uint64_t a_fields, nv
         NVIPFIX_IN6_ADDR_TO_IP_ADDRESS( data.sourceIp, a_connStat->conn_client_ip );
         NVIPFIX_IN6_ADDR_TO_IP_ADDRESS( data.destinationIp, a_connStat->conn_server_ip );
 
+        NVIPFIX_ETHER_ADDR_TO_MAC_ADDRESS( data.sourceMac, a_connStat->conn_client_mac_addr );
+        NVIPFIX_ETHER_ADDR_TO_MAC_ADDRESS( data.destinationMac, a_connStat->conn_server_mac_addr );
+
 //		nvIPFIX_datetime_t flowStart;
 //		nvIPFIX_datetime_t flowEnd;
 //		nvIPFIX_BYTE dscp;
 //		nvIPFIX_U64 layer2SegmentId;
 //
-//		nvIPFIX_mac_address_t sourceMac;
-//		nvIPFIX_U16 sourcePort;
-//
-//		nvIPFIX_mac_address_t destinationMac;
-//		nvIPFIX_U16 destinationPort;
 
         nvIPFIX_data_record_list_t * list = nvipfix_data_list_add_copy( *listPtr, &data );
         

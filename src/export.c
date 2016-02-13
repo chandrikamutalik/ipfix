@@ -264,49 +264,52 @@ nvIPFIX_error_t nvipfix_export(
 	NVIPFIX_ERROR_RAISE_IF( template == NULL, error, NV_IPFIX_ERROR_CODE_ALLOCATE_TEMPLATE, TemplateAlloc,
 			"%s", "Template alloc failed" );
 
-	GError fbErrorV = { 0 };
-	GError * fbError = &fbErrorV;
-
-	NVIPFIX_ERROR_RAISE_IF( !fbTemplateAppendSpecArray( template, Template, UINT32_MAX, &fbError ),
-			error, NV_IPFIX_ERROR_CODE_EXPORT_TEMPLATE_APPEND_SPEC, TemplateAppendSpec,
-			"%s", "Template append spec failed" );
-
-	uint16_t templateId = fbSessionAddTemplate( session, TRUE, FB_TID_AUTO, template, &fbError );
-	uint16_t templateIdExt = fbSessionAddTemplate( session, FALSE, FB_TID_AUTO, template, &fbError );
-	NVIPFIX_ERROR_RAISE_IF( templateId == 0 || templateIdExt == 0,
-			error, NV_IPFIX_ERROR_CODE_EXPORT_SESSION_ADD_TEMPLATE, SessionAddTemplate,
-			"%s", "Session add template failed" );
-
 	fbTemplate_t * statsTemplate = fbTemplateAlloc( InfoModel );
 	NVIPFIX_ERROR_RAISE_IF( statsTemplate == NULL, error, NV_IPFIX_ERROR_CODE_ALLOCATE_TEMPLATE, StatsTemplateAlloc,
 			"%s", "Stats template alloc failed" );
 
-	NVIPFIX_ERROR_RAISE_IF( !fbTemplateAppendSpecArray( statsTemplate, StatsTemplate, UINT32_MAX, &fbError ),
+	//GError * fbError = NULL;
+
+	NVIPFIX_ERROR_RAISE_IF( !fbTemplateAppendSpecArray( template, Template, UINT32_MAX, NULL ),
+			error, NV_IPFIX_ERROR_CODE_EXPORT_TEMPLATE_APPEND_SPEC, TemplateAppendSpec,
+			"%s", "Template append spec failed" );
+
+	NVIPFIX_ERROR_RAISE_IF( !fbTemplateAppendSpecArray( statsTemplate, StatsTemplate, UINT32_MAX, NULL ),
 			error, NV_IPFIX_ERROR_CODE_EXPORT_TEMPLATE_APPEND_SPEC, StatsTemplateAppendSpec,
 			"%s", "Stats template append spec failed" );
 
-	uint16_t statsTemplateId = fbSessionAddTemplate( session, TRUE, FB_TID_AUTO, statsTemplate, &fbError );
-	uint16_t statsTemplateIdExt = fbSessionAddTemplate( session, FALSE, FB_TID_AUTO, statsTemplate, &fbError );
-	NVIPFIX_ERROR_RAISE_IF( statsTemplateId == 0 || statsTemplateIdExt == 0,
+	uint16_t templateId;
+	uint16_t templateIdExt;
+	NVIPFIX_ERROR_RAISE_IF(
+			(templateId = fbSessionAddTemplate( session, TRUE, FB_TID_AUTO, template, NULL )) == 0
+			|| (templateIdExt = fbSessionAddTemplate( session, FALSE, FB_TID_AUTO, template, NULL )) == 0,
+			error, NV_IPFIX_ERROR_CODE_EXPORT_SESSION_ADD_TEMPLATE, SessionAddTemplate,
+			"%s", "Session add template failed" );
+
+	uint16_t statsTemplateId;
+	uint16_t statsTemplateIdExt;
+	NVIPFIX_ERROR_RAISE_IF(
+			(statsTemplateId = fbSessionAddTemplate( session, TRUE, FB_TID_AUTO, statsTemplate, NULL )) == 0
+			|| (statsTemplateIdExt = fbSessionAddTemplate( session, FALSE, FB_TID_AUTO, statsTemplate, NULL )) == 0,
 			error, NV_IPFIX_ERROR_CODE_EXPORT_SESSION_ADD_TEMPLATE, SessionAddTemplate,
 			"%s", "Session add stats template failed" );
 
-	NVIPFIX_TLOG_DEBUG( "%s: templateId = %d, stats templateId = %d", (unsigned)templateId, (unsigned)statsTemplateId );
+	NVIPFIX_TLOG_DEBUG( "templateId = %d, stats templateId = %d", (unsigned)templateId, (unsigned)statsTemplateId );
 
 	fBuf_t * buffer = fBufAllocForExport( session, exporter );
 	NVIPFIX_ERROR_RAISE_IF( buffer == NULL,
 			error, NV_IPFIX_ERROR_CODE_EXPORT_BUF_ALLOC, BufAlloc,
 			"%s", "Buf alloc failed" );
 
-	NVIPFIX_ERROR_RAISE_IF( !fbSessionExportTemplates( session, &fbError ),
+	NVIPFIX_ERROR_RAISE_IF( !fbSessionExportTemplates( session, NULL ),
 			error, NV_IPFIX_ERROR_CODE_EXPORT_SESSION_EXPORT_TEMPLATES, SessionExportTemplates,
 			"%s", "Session export templates failed" );
 
-	NVIPFIX_ERROR_RAISE_IF( !fBufSetInternalTemplate( buffer, templateId, &fbError ),
+	NVIPFIX_ERROR_RAISE_IF( !fBufSetInternalTemplate( buffer, templateId, NULL ),
 			error, NV_IPFIX_ERROR_CODE_EXPORT_SET_INTERNAL_TEMPLATE, SetInternalTemplate,
 			"%s", "Set internal template failed" );
 
-	NVIPFIX_ERROR_RAISE_IF( !fBufSetExportTemplate( buffer, templateIdExt, &fbError ),
+	NVIPFIX_ERROR_RAISE_IF( !fBufSetExportTemplate( buffer, templateIdExt, NULL ),
 			error, NV_IPFIX_ERROR_CODE_EXPORT_SET_EXPORT_TEMPLATE, SetExportTemplate,
 			"%s", "Set export template failed" );
 
@@ -346,7 +349,7 @@ nvIPFIX_error_t nvipfix_export(
 		data.ethernetType = (uint16_t) record->ethernetType;
 		data.latencyMicroseconds = nvipfix_timespan_get_microseconds( &record->latency );
 
-		NVIPFIX_TLOG_DEBUG(
+		NVIPFIX_TLOG_TRACE(
 				"%d.%d.%d.%d:%d -> %d.%d.%d.%d:%d %d %d-%d %d %02x:%02x:%02x:%02x:%02x:%02x",
 				NVIPFIX_ARGSF_IP_ADDRESS( record->sourceIp ),
 				record->sourcePort,
@@ -356,8 +359,8 @@ nvIPFIX_error_t nvipfix_export(
 				data.flowDurationMilliseconds,
 				NVIPFIX_ARGSF_MAC_ADDRESS( record->sourceMac ));
 
-		if (!fBufAppend( buffer, (uint8_t *) &data, sizeof (nvIPFIX_export_data_t), &fbError )) {
-			NVIPFIX_TLOG_ERROR( "%s: fBufAppend %s", __func__, fbError->message );
+		if (!fBufAppend( buffer, (uint8_t *) &data, sizeof (nvIPFIX_export_data_t), NULL )) {
+			NVIPFIX_TLOG_ERROR( "%s: fBufAppend", __func__ );
 		}
 		else {
 			recordCount++;
@@ -366,11 +369,11 @@ nvIPFIX_error_t nvipfix_export(
 		record = record->next;
 	}
 
-	NVIPFIX_ERROR_RAISE_IF( !fBufSetInternalTemplate( buffer, statsTemplateId, &fbError ),
+	NVIPFIX_ERROR_RAISE_IF( !fBufSetInternalTemplate( buffer, statsTemplateId, NULL ),
 			error, NV_IPFIX_ERROR_CODE_EXPORT_SET_INTERNAL_TEMPLATE, SetInternalTemplateStats,
 			"%s", "Set internal template (stats) failed" );
 
-	NVIPFIX_ERROR_RAISE_IF( !fBufSetExportTemplate( buffer, statsTemplateIdExt, &fbError ),
+	NVIPFIX_ERROR_RAISE_IF( !fBufSetExportTemplate( buffer, statsTemplateIdExt, NULL ),
 			error, NV_IPFIX_ERROR_CODE_EXPORT_SET_EXPORT_TEMPLATE, SetExportTemplateStats,
 			"%s", "Set export template (stats) failed" );
 
@@ -382,8 +385,8 @@ nvIPFIX_error_t nvipfix_export(
 	stats.exportedMessageTotalCount = collector->messageCount;
 
 	NVIPFIX_TLOG_ERROR_IF(
-			!fBufAppend( buffer, (uint8_t *) &stats, sizeof (nvIPFIX_export_stats_data_t), &fbError ),
-			"%s: fBufAppend (stats) %s", __func__, fbError->message );
+			!fBufAppend( buffer, (uint8_t *) &stats, sizeof (nvIPFIX_export_stats_data_t), NULL ),
+			"%s: fBufAppend (stats)", __func__ );
 
 	NVIPFIX_ERROR_HANDLER( SetExportTemplateStats );
 

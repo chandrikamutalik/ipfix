@@ -32,6 +32,18 @@
 #define NVIPFIX_LOG_CATEGORY_NAME_MAIN "nvipfix.log.app"
 #define NVIPFIX_LOG_CATEGORY_NAME_ERROR "nvipfix.log.app.error"
 
+#define NVIPFIX_TLOG( a_fmt, a_priority ) \
+	va_list args; \
+	va_start( args, a_fmt ); \
+	nvipfix_tlog( a_priority, a_fmt, &args ); \
+	va_end( args )
+
+#define NVIPFIX_LOG( a_fmt, a_priority ) \
+	va_list args; \
+	va_start( args, a_fmt ); \
+	nvipfix_log( a_priority, a_fmt, &args ); \
+	va_end( args )
+
 
 static void nvipfix_log_init( void );
 static void nvipfix_log_cleanup( void );
@@ -54,84 +66,54 @@ void nvipfix_log_set_config_path( const nvIPFIX_CHAR * a_path )
 
 }
 
+void nvipfix_tlog_trace( const nvIPFIX_TCHAR * a_fmt, ... )
+{
+	NVIPFIX_TLOG( a_fmt, LOG4C_PRIORITY_TRACE );
+}
+
+void nvipfix_log_trace( const nvIPFIX_CHAR * a_fmt, ... )
+{
+	NVIPFIX_LOG( a_fmt, LOG4C_PRIORITY_TRACE );
+}
+
 void nvipfix_tlog_debug( const nvIPFIX_TCHAR * a_fmt, ... )
 {
-	va_list args;
-	va_start( args, a_fmt );
-
-	nvipfix_tlog( LOG4C_PRIORITY_DEBUG, a_fmt, &args );
-
-	va_end( args );
+	NVIPFIX_TLOG( a_fmt, LOG4C_PRIORITY_DEBUG );
 }
 
 void nvipfix_log_debug( const nvIPFIX_CHAR * a_fmt, ... )
 {
-	va_list args;
-	va_start( args, a_fmt );
-
-	nvipfix_log( LOG4C_PRIORITY_DEBUG, a_fmt, &args );
-
-	va_end( args );
+	NVIPFIX_LOG( a_fmt, LOG4C_PRIORITY_DEBUG );
 }
 
 void nvipfix_tlog_info( const nvIPFIX_TCHAR * a_fmt, ... )
 {
-	va_list args;
-	va_start( args, a_fmt );
-
-	nvipfix_tlog( LOG4C_PRIORITY_INFO, a_fmt, &args );
-
-	va_end( args );
+	NVIPFIX_TLOG( a_fmt, LOG4C_PRIORITY_INFO );
 }
 
 void nvipfix_log_info( const nvIPFIX_CHAR * a_fmt, ... )
 {
-	va_list args;
-	va_start( args, a_fmt );
-
-	nvipfix_log( LOG4C_PRIORITY_INFO, a_fmt, &args );
-
-	va_end( args );
+	NVIPFIX_LOG( a_fmt, LOG4C_PRIORITY_INFO );
 }
 
 void nvipfix_tlog_warning( const nvIPFIX_TCHAR * a_fmt, ... )
 {
-	va_list args;
-	va_start( args, a_fmt );
-
-	nvipfix_tlog( LOG4C_PRIORITY_WARN, a_fmt, &args );
-
-	va_end( args );
+	NVIPFIX_TLOG( a_fmt, LOG4C_PRIORITY_WARN );
 }
 
 void nvipfix_log_warning( const nvIPFIX_CHAR * a_fmt, ... )
 {
-	va_list args;
-	va_start( args, a_fmt );
-
-	nvipfix_log( LOG4C_PRIORITY_WARN, a_fmt, &args );
-
-	va_end( args );
+	NVIPFIX_LOG( a_fmt, LOG4C_PRIORITY_WARN );
 }
 
 void nvipfix_tlog_error( const nvIPFIX_TCHAR * a_fmt, ... )
 {
-	va_list args;
-	va_start( args, a_fmt );
-
-	nvipfix_tlog( LOG4C_PRIORITY_ERROR, a_fmt, &args );
-
-	va_end( args );
+	NVIPFIX_TLOG( a_fmt, LOG4C_PRIORITY_ERROR );
 }
 
 void nvipfix_log_error( const nvIPFIX_CHAR * a_fmt, ... )
 {
-	va_list args;
-	va_start( args, a_fmt );
-
-	nvipfix_log( LOG4C_PRIORITY_ERROR, a_fmt, &args );
-
-	va_end( args );
+	NVIPFIX_LOG( a_fmt, LOG4C_PRIORITY_ERROR );
 }
 
 void nvipfix_log_init( void )
