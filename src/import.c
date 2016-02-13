@@ -258,7 +258,17 @@ static int nvipfix_import_conn_stat_handler( void * a_arg, uint64_t a_fields, nv
 			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 0),
 			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 1),
 			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 2),
-			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 3)
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 3),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 4),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 5),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 6),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 7),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 8),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 9),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 10),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 11),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 12),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 13)
 			);
 
     if (a_connStat != NULL) {
@@ -346,6 +356,8 @@ nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host,
 
     NVIPFIX_ERROR_RAISE_IF( nvcError != 0, error, NV_IPFIX_ERROR_CODE_NVC_AUTH, Auth, 
         "nvc_authenticate/nvc_check_uid: %d", nvcError );
+
+	NVIPFIX_LOG_DEBUG( "NV C API auth result = %d, [%s]", nvcResult.res_code, nvcResult.res_msg );
 
     nvc_conn_t filter = { { 0 } };
     uint64_t filterFields = 0;
