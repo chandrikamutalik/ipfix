@@ -198,6 +198,8 @@ const nvIPFIX_collector_t * nvipfix_export_get_collector( const nvIPFIX_hashtabl
 			NVIPFIX_ERROR_RAISE_IF( CollectorsTable == NULL, error, NV_IPFIX_ERROR_CODE_HASHTABLE_ADD, CollectorAdd,
 					"%s", "Collector add failed" );
 
+			result = collector;
+
 			NVIPFIX_ERROR_RAISE( error, NV_IPFIX_ERROR_CODE_NONE, None );
 
 			NVIPFIX_ERROR_HANDLER( CollectorAdd );

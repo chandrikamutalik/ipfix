@@ -253,7 +253,7 @@ nvIPFIX_data_record_list_t * nvipfix_import_file( const nvIPFIX_CHAR * a_fileNam
 
 static int nvipfix_import_conn_stat_handler( void * a_arg, uint64_t a_fields, nvc_conn_t * a_connStat )
 {
-    NVIPFIX_LOG_DEBUG( "%" PRId32 "-> %" PRId32 " %d %d %d %d %d %d %d %d %d %d %d %d %d %d",
+    NVIPFIX_LOG_DEBUG( "%" PRId32 "-> %" PRId32 " %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d %d",
     		a_connStat->conn_client_switch_port, a_connStat->conn_server_switch_port,
 			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 0),
 			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 1),
@@ -268,7 +268,9 @@ static int nvipfix_import_conn_stat_handler( void * a_arg, uint64_t a_fields, nv
 			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 10),
 			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 11),
 			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 12),
-			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 13)
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 13),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 14),
+			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 15)
 			);
 
     if (a_connStat != NULL) {
