@@ -4,6 +4,7 @@
     - fixbuf library (https://tools.netsa.cert.org/fixbuf/index.html)
     - log4c library (http://log4c.sourceforge.net/)
     - OpenSSL library (https://www.openssl.org/)
+    - GLib 2 (https://developer.gnome.org/glib/stable/)
     
   Tools:
     - GCC 4

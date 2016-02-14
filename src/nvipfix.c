@@ -21,6 +21,9 @@
 #ifndef NVIPFIX_DEF_TEST
 
 
+#define _BSD_SOURCE
+
+
 #include <stdio.h>
 #include <string.h>
 #include <stdbool.h>
@@ -37,6 +40,7 @@
 #include <sys/resource.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <stdlib.h>
 #endif
 
 
@@ -74,6 +78,12 @@ void Usage()
 
 int main( int argc, char * argv[] )
 {
+#ifdef NVIPFIX_DEF_POSIX
+	char * appPath = realpath( argv[0], NULL );
+	NVIPFIX_LOG_DEBUG( "full path = %s", appPath );
+	free( appPath );
+#endif
+
 	if (argc < 2) {
 		Usage();
 		return NV_IPFIX_RETURN_CODE_ARGS_ERROR;

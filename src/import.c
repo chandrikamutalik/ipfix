@@ -264,7 +264,7 @@ nvIPFIX_data_record_list_t * nvipfix_import_file( const nvIPFIX_CHAR * a_fileNam
 
 static int nvipfix_import_conn_stat_handler( void * a_arg, uint64_t a_fields, nvc_conn_t * a_connStat )
 {
-    NVIPFIX_LOG_TRACE( "%d.%d.%d.%d -> %d.%d.%d.%d",
+    NVIPFIX_LOG_TRACE( "%d.%d.%d.%d -> %d.%d.%d.%d %d-%d %d",
 			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 12),
 			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 13),
 			(unsigned)*((uint8_t *)&(a_connStat->conn_client_ip) + 14),
@@ -272,7 +272,9 @@ static int nvipfix_import_conn_stat_handler( void * a_arg, uint64_t a_fields, nv
 			(unsigned)*((uint8_t *)&(a_connStat->conn_server_ip) + 12),
 			(unsigned)*((uint8_t *)&(a_connStat->conn_server_ip) + 13),
 			(unsigned)*((uint8_t *)&(a_connStat->conn_server_ip) + 14),
-			(unsigned)*((uint8_t *)&(a_connStat->conn_server_ip) + 15)
+			(unsigned)*((uint8_t *)&(a_connStat->conn_server_ip) + 15),
+			(unsigned)a_connStat->conn_started_time, (unsigned)a_connStat->conn_ended_time,
+			(unsigned)a_connStat->conn_vxlan
 			);
 
     if (a_connStat != NULL) {
