@@ -694,6 +694,35 @@ bool nvipfix_parse_datetime_iso8601( const char * a_s, void * a_value )
 	return result;
 }
 
+/**
+ *
+ * @param
+ * @param
+ * @return
+ */
+bool nvipfix_parse_timespan( const char * a_s, void * a_value )
+{
+	NVIPFIX_NULL_ARGS_GUARD_2( a_s, a_value, false );
+
+	bool result = false;
+	nvIPFIX_timespan_t * timespan = a_value;
+	nvIPFIX_string_list_t * tokens = nvipfix_string_split( a_s, ":" );
+
+	if (tokens != NULL) {
+		if (tokens->count == 3) {
+			int seconds = atoi( tokens->head->value ) * NVIPFIX_MINUTES_PER_HOUR * NVIPFIX_SECONDS_PER_MINUTE;
+			seconds += atoi( tokens->head->next->value ) * NVIPFIX_SECONDS_PER_MINUTE;
+			seconds += atoi( tokens->head->next->next->value );
+
+			NVIPFIX_TIMESPAN_SET_SECONDS( *timespan, seconds );
+		}
+
+		nvipfix_string_list_free( tokens, true );
+	}
+
+	return result;
+}
+
 bool nvipfix_parse_timespan_milliseconds( const char * a_s, void * a_value )
 {
 	NVIPFIX_NULL_ARGS_GUARD_2( a_s, a_value, false );

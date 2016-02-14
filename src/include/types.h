@@ -384,6 +384,14 @@ bool nvipfix_parse_datetime_iso8601( const char * a_s, void * a_value );
  * @param
  * @return
  */
+bool nvipfix_parse_timespan( const char * a_s, void * a_value );
+
+/**
+ *
+ * @param
+ * @param
+ * @return
+ */
 bool nvipfix_parse_timespan_milliseconds( const char * a_s, void * a_value );
 
 /**

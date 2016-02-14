@@ -43,6 +43,7 @@ typedef struct {
 	const nvIPFIX_CHAR * host;		//!< switch host
 	const nvIPFIX_CHAR * login;		//!< switch login
 	const nvIPFIX_CHAR * password;	//!< switch password
+	const nvIPFIX_timespan_t exportInterval;
 } nvIPFIX_switch_info_t;
 
 /**

@@ -88,6 +88,7 @@ enum {
 	SettingIdSwitchApiHost,
 	SettingIdSwitchApiLogin,
 	SettingIdSwitchApiPassword,
+	SettingIdExportInterval,
 	SettingIdCollector,
 	SettingIdCollectorIpAddress,
 	SettingIdCollectorHostname,
@@ -100,6 +101,7 @@ static char * SwitchName = NULL;
 static char * SwitchApiHost = NULL;
 static char * SwitchApiLogin = NULL;
 static char * SwitchApiPassword = NULL;
+static nvIPFIX_timespan_t ExportInterval;
 
 static const nvIPFIX_setting_t Settings[] = {
 		NVIPFIX_CONFIG_SETTING( "switch", SettingIdSwitch, 0,
@@ -113,6 +115,9 @@ static const nvIPFIX_setting_t Settings[] = {
 
 		NVIPFIX_CONFIG_SETTING( "switch-nvapi-password", SettingIdSwitchApiPassword, 0,
 				&SwitchApiPassword, 0, nvipfix_parse_string ),
+
+		NVIPFIX_CONFIG_SETTING( "export-interval", SettingIdExportInterval, 0,
+				&ExportInterval, 0, nvipfix_parse_timespan ),
 
 		NVIPFIX_CONFIG_SETTING_COLLECTOR( "collector", SettingIdCollector, 0,
 				NULL, name, nvipfix_parse_string ),
