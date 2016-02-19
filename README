@@ -1,4 +1,57 @@
-* Building
+* nvIPFIX
+
+  nvIPFIX (nvipfix) is an IPFIX exporter written as open source application in C, based on fixbuf library (<https://tools.netsa.cert.org/fixbuf/index.html>), released for Unix operating systems under GNU General Public License. See "Licensing" section for details.
+  nvIPFIX exports TCP/IP connection flow statistics from a Netvisor or Open Netvisor Linux (ONVL) switch to an IPFIX Collector using standard IPFIX bi-flow format, as defined in the following RFC: <https://tools.ietf.org/html/rfc5103>.
+  The exporter is typically compiled and runs inside the switch operating system, where periodically retrieves connection statistics thru Netvisor C-API functions, which then exports in IPFIX format to a configured set of collectors, using various transport methods: UDP, TCP/IP, SCTP. The export interval period is configurable and defaults to one minute.
+  Optionally the exporter can be compiled and run on an external Unix server. In such case, other than the set of collectors and export interval, the exporter needs to be configured with the switch host information and Netvisor user credentials.
+
+* Versioning
+
+  0.0.2     Updated IPFIX template with Private Enterprise Number assigned to Pluribus Networks
+  0.0.1     Initial Version
+
+* Supported IPFIX Information Elements (IEs)
+
+  nvIPFIX supports the following standard IEs:
+  - flowStartSeconds
+  - flowEndSeconds
+  - layer2SegmentId
+  - transportOctetDeltaCount
+  - initiatorOctets
+  - responderOctets
+  - flowDurationMilliseconds
+  - ingressInterface
+  - egressInterface
+  - vlanId
+  - ethernetType
+  - sourceIPv4Address
+  - destinationIPv4Address
+  - sourceTransportPort
+  - destinationTransportPort
+  - sourceMacAddress
+  - destinationMacAddress
+  - protocolIdentifier
+  - tcpControlBits
+  - exportedMessageTotalCount
+  - exportedFlowRecordTotalCount
+
+  nvIPFIX supports the following private template IEs:
+  - latencyMicroseconds
+
+* References
+
+  - Netvisor and ONVL are Unix based networking operating systems invented by Pluribus Networks (<http://pluribusnetworks.com>)
+  - General IPFIX architecture: <https://en.wikipedia.org/wiki/IP_Flow_Information_Export>
+  - Standard IPFIX Information Elements defined by IANA: <http://www.iana.org/assignments/ipfix/ipfix.xhtml>
+  - IEEE RFC 5103: <https://tools.ietf.org/html/rfc5103>
+  - IANA Private Enterprise Numbers: <http://www.iana.org/assignments/enterprise-numbers/enterprise-numbers>
+
+
+* Installation and Building
+
+  Supported OS:
+    - Linux
+    - Solaris
 
   Prerequisites:
     - fixbuf library (https://tools.netsa.cert.org/fixbuf/index.html)
@@ -16,28 +69,47 @@
   
 * Configuration
 
-  Configuration stored in a file 'nvipfix.config'
-  Sample configuration:
+  Configuration is stored in file 'nvipfix.config' in local directory
+  Sample configuration (running from Netvisor/ONVL switch):
   -----
-  # hostname of the switch (read from the system)
-  switch switchName
-  
-  switch-nvapi-host host.domain
-  switch-nvapi-login switchLogin
-  switch-nvapi-password switchPassword
+  #### Export Interval
+  # defines the polling frequency for connection statistics
+  #
+  #
+  export-interval 00:01:00	# hh:mm:ss
+  #
+  ####
 
-  # List of collectors
+
+  #### List of collectors
   collector collectorName {
 	  collector-hostname 192.168.0.6
 	  transport udp
 	  transport-port 9991
 	  dscp 0
   }
+  ####
   -----
   
   
 * Usage
 
-  nvIPFIX [-fdatafile] <start_ts> <end_ts>" );
-    datafile - datafile (JSON) name (for debug purpose)
-    start_ts/end_ts - ISO 8601 datetime (YYYY-MM-DDTHH:mm:SS)
+  As daemon:
+    nvIPFIX start|stop
+  As single batch execution (configured export-interval setting is ignored):
+    nvIPFIX [-fdatafile] <start_ts> <end_ts>"
+      datafile - offline data file in JSON format (for debug purpose)
+      start_ts/end_ts - ISO 8601 datetime (YYYY-MM-DDTHH:mm:SS)
+
+* Licensing
+
+  nvIPFIX is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+* Authors
+
+  Denis Rozhkov, denis 'at' rozhkoff.com
+  Marco Pessi, marco 'at' pluribusnetworks.com

@@ -29,7 +29,7 @@
 #include "data.h"
 
 
-#define NVIPFIX_PEN 47123
+#define NVIPFIX_PEN 47269
 
 #define NVIPFIX_IE_LATENCY_NAME "latencyMicroseconds"
 
