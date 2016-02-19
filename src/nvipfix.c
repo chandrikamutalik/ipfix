@@ -46,7 +46,7 @@
 
 #define	NV_IPFIX_VERSION_MAJOR 0
 #define NV_IPFIX_VERSION_MINOR 0
-#define NV_IPFIX_VERSION_REV 1
+#define NV_IPFIX_VERSION_REV 2
 
 #define NVIPFIX_VERSION( a_ver_major, a_ver_minor, a_ver_rev ) (#a_ver_major "." #a_ver_minor "." #a_ver_rev)
 #define NVIPFIX_VERSION_TO_STRING( a_ver_major, a_ver_minor, a_ver_rev ) NVIPFIX_VERSION( a_ver_major, a_ver_minor, a_ver_rev )
@@ -71,8 +71,11 @@ int main_daemon( void );
 void Usage()
 {
 	printf( "nvIPFIX %s\n", NVIPFIX_VERSION_STRING );
-	puts( "Usage: nvIPFIX [[-fdatafile] <start_ts> <end_ts>] [start|stop]" );
-	puts( "\tdatafile - JSON file (for debug purpose)" );
+	puts( "Usage: nvIPFIX start|stop" );
+    puts( "\tstart - start nvIPFIX daemon" );
+    puts( "\tstop - stop nvIPFIX daemon" );
+    puts( "Usage: nvIPFIX [-fdatafile] <start_ts> <end_ts>" );
+	puts( "\tdatafile - data file in JSON format (for debug purpose)" );
 	puts( "\tstart_ts/end_ts - ISO 8601 datetime (YYYY-MM-DDTHH:mm:SS)" );
 }
 
