@@ -101,7 +101,8 @@ static char * SwitchName = NULL;
 static char * SwitchApiHost = NULL;
 static char * SwitchApiLogin = NULL;
 static char * SwitchApiPassword = NULL;
-static nvIPFIX_timespan_t ExportInterval;
+
+static NVIPFIX_TIMESPAN_INIT_FROM_SECONDS( ExportInterval, 60 );
 
 static const nvIPFIX_setting_t Settings[] = {
 		NVIPFIX_CONFIG_SETTING( "switch", SettingIdSwitch, 0,
@@ -514,4 +515,11 @@ void nvipfix_config_switch_info_free( nvIPFIX_switch_info_t * a_switchInfo )
 	free( (void *)a_switchInfo->host );
 	free( (void *)a_switchInfo->login );
 	free( (void *)a_switchInfo->password );
+}
+
+nvIPFIX_timespan_t nvipfix_config_get_export_interval( void )
+{
+	nvipfix_config_init();
+
+	return ExportInterval;
 }

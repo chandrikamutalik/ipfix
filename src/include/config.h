@@ -43,7 +43,6 @@ typedef struct {
 	const nvIPFIX_CHAR * host;		//!< switch host
 	const nvIPFIX_CHAR * login;		//!< switch login
 	const nvIPFIX_CHAR * password;	//!< switch password
-	const nvIPFIX_timespan_t exportInterval;
 } nvIPFIX_switch_info_t;
 
 /**
@@ -71,6 +70,12 @@ nvIPFIX_switch_info_t * nvipfix_config_switch_info_get();
  * @param a_switchInfo
  */
 void nvipfix_config_switch_info_free( nvIPFIX_switch_info_t * a_switchInfo );
+
+/**
+ *
+ * @return
+ */
+nvIPFIX_timespan_t nvipfix_config_get_export_interval( void );
 
 /**
  * get array of collectors
