@@ -28,13 +28,16 @@
 #include <string.h>
 #include <stdbool.h>
 #include <time.h>
+#include <errno.h>
 
 #include "include/types.h"
 #include "include/log.h"
 #include "include/error.h"
+#include "include/config.h"
 #include "include/main.h"
 
 #ifdef NVIPFIX_DEF_POSIX
+#include <sys/mman.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/resource.h>
@@ -58,14 +61,14 @@ enum {
 	NV_IPFIX_RETURN_CODE_ARGS_ERROR,
 	NV_IPFIX_RETURN_CODE_CONFIGURATION_ERROR,
 	NV_IPFIX_RETURN_CODE_DATA_ERROR,
-	NV_IPFIX_RETURN_CODE_START_DAEMON_ERROR
+	NV_IPFIX_RETURN_CODE_START_DAEMON_ERROR,
+	NV_IPFIX_RETURN_CODE_DAEMON_ALREADY_RUNNING,
+	NV_IPFIX_RETURN_CODE_DAEMON_SHARED_MEMORY_ERROR,
 };
 
 
-NVIPFIX_TIMESPAN_INIT_FROM_SECONDS( ExportDuration, 1 );
-
-
-int main_daemon( void );
+int main_daemon( char * a_shmName );
+char * shm_name_escape( char * a_shmName );
 
 
 void Usage()
@@ -81,12 +84,6 @@ void Usage()
 
 int main( int argc, char * argv[] )
 {
-#ifdef NVIPFIX_DEF_POSIX
-	char * appPath = realpath( argv[0], NULL );
-	NVIPFIX_LOG_DEBUG( "full path = %s", appPath );
-	free( appPath );
-#endif
-
 	if (argc < 2) {
 		Usage();
 		return NV_IPFIX_RETURN_CODE_ARGS_ERROR;
@@ -100,7 +97,46 @@ int main( int argc, char * argv[] )
 		useFile = true;
 	}
 	else if (strcmp( "start", argv[1] ) == 0) {
-		return main_daemon();
+#ifdef NVIPFIX_DEF_POSIX
+		char * appPath = realpath( argv[0], NULL );
+#endif
+
+		int rc = main_daemon( appPath );
+
+#ifdef NVIPFIX_DEF_POSIX
+		free( appPath );
+#endif
+
+		return rc;
+	}
+	else if (strcmp( "stop", argv[1] ) == 0) {
+#ifdef NVIPFIX_DEF_POSIX
+		char * appPath = shm_name_escape( realpath( argv[0], NULL ) );
+
+		int shmHandle = shm_open( appPath, O_RDWR, 0 );
+
+		if (shmHandle < 0) {
+			nvipfix_log_error( "shm_open: %s, %s", appPath, strerror( errno ) );
+
+			return NV_IPFIX_RETURN_CODE_DAEMON_SHARED_MEMORY_ERROR;
+		}
+
+		volatile bool * isRunning = mmap( NULL, sizeof (bool), PROT_READ | PROT_WRITE, MAP_SHARED, shmHandle, 0 );
+
+		if (isRunning == NULL) {
+			nvipfix_log_error( "mmap" );
+		}
+		else {
+			*isRunning = false;
+		}
+
+		close( shmHandle );
+		shm_unlink( appPath );
+
+		free( appPath );
+#endif
+
+		return NV_IPFIX_RETURN_CODE_OK;
 	}
 
 	nvIPFIX_datetime_t startTs = { 0 };
@@ -124,11 +160,24 @@ int main( int argc, char * argv[] )
 	return NV_IPFIX_RETURN_CODE_OK;
 }
 
-int main_daemon( void )
+int main_daemon( char * a_shmName )
 {
 	int result = NV_IPFIX_RETURN_CODE_OK;
 
+	volatile bool * isRunning = NULL;
+
 #ifdef NVIPFIX_DEF_POSIX
+	a_shmName = shm_name_escape( a_shmName );
+	int shmHandle = shm_open( a_shmName, O_RDWR, 0 );
+
+	if (shmHandle >= 0) {
+		close( shmHandle );
+		shm_unlink( a_shmName );
+		nvipfix_log_error( "Daemon is already running" );
+
+		return NV_IPFIX_RETURN_CODE_DAEMON_ALREADY_RUNNING;
+	}
+
 	pid_t pid = fork();
 
 	if (pid < 0) {
@@ -159,22 +208,56 @@ int main_daemon( void )
 				close( STDERR_FILENO );
 			}
 
-			int stdFileHnadle = open( "/dev/null", O_RDWR );
+			int stdFileHandle = open( "/dev/null", O_RDWR );
 
-			if (stdFileHnadle == 0) {
-				dup( stdFileHnadle );
-				dup( stdFileHnadle );
+			if (stdFileHandle == 0) {
+				dup( stdFileHandle );
+				dup( stdFileHandle );
 			}
+
+			shmHandle = shm_open( a_shmName, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR | S_IROTH | S_IWOTH );
+
+			if (shmHandle < 0) {
+				nvipfix_log_error( "shm_open: %s, %s", a_shmName, strerror( errno ) );
+
+				return NV_IPFIX_RETURN_CODE_DAEMON_SHARED_MEMORY_ERROR;
+			}
+
+			if (ftruncate( shmHandle, sizeof (bool) ) != 0) {
+				nvipfix_log_error( "ftruncate" );
+
+				close( shmHandle );
+				shm_unlink( a_shmName );
+
+				return NV_IPFIX_RETURN_CODE_DAEMON_SHARED_MEMORY_ERROR;
+			}
+
+			isRunning = mmap( NULL, sizeof (bool), PROT_READ | PROT_WRITE, MAP_SHARED, shmHandle, 0 );
+
+			if (isRunning == NULL) {
+				nvipfix_log_error( "mmap" );
+
+				close( shmHandle );
+				shm_unlink( a_shmName );
+
+				return NV_IPFIX_RETURN_CODE_DAEMON_SHARED_MEMORY_ERROR;
+			}
+
+			*isRunning = true;
+#endif
 
 			time_t startT = time( NULL );
 
-			while (true) {
+			while (*isRunning) {
+				nvIPFIX_timespan_t exportInterval = nvipfix_config_get_export_interval();
 				time_t nowT = time( NULL );
 				double timeDiff = difftime( nowT, startT );
-				int waitSeconds = NVIPFIX_TIMESPAN_GET_SECONDS( &ExportDuration ) - timeDiff;
+				int waitSeconds = NVIPFIX_TIMESPAN_GET_SECONDS( &exportInterval ) - timeDiff;
 
 				if (waitSeconds > 0) {
+#ifdef NVIPFIX_DEF_POSIX
 					sleep( waitSeconds );
+#endif
 
 					nowT = time( NULL );
 				}
@@ -182,17 +265,37 @@ int main_daemon( void )
 				nvIPFIX_datetime_t startTs = { 0 };
 				nvIPFIX_datetime_t endTs = { 0 };
 
+				startT++;
+
 				if (nvipfix_ctime_to_datetime( &startTs, &startT ) &&  nvipfix_ctime_to_datetime( &endTs, &nowT )) {
 					nvipfix_main_export_nvc( &startTs, &endTs );
 				}
 
 				startT = nowT;
 			}
+
+#ifdef NVIPFIX_DEF_POSIX
+			close( shmHandle );
+			shm_unlink( a_shmName );
+#endif
 		}
 	}
-#endif
+	else {
+		nvipfix_log_info( "Starting daemon..." );
+	}
 
 	return result;
+}
+
+char * shm_name_escape( char * a_shmName )
+{
+	char * slashPtr;
+
+	while ((slashPtr = strchr( a_shmName + 1, '/')) != NULL) {
+		*slashPtr = ':';
+	}
+
+	return a_shmName;
 }
 
 
