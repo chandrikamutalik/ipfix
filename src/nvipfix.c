@@ -84,6 +84,8 @@ void Usage()
 
 int main( int argc, char * argv[] )
 {
+	char *appPath;
+
 	if (argc < 2) {
 		Usage();
 		return NV_IPFIX_RETURN_CODE_ARGS_ERROR;
@@ -92,13 +94,18 @@ int main( int argc, char * argv[] )
 	size_t argIndexTs = 1;
 	bool useFile = false;
 
+	appPath = (char *) malloc(FILENAME_MAX);
+
 	if (strncmp( "-f", argv[1], 2 ) == 0) {
 		argIndexTs = 2;
 		useFile = true;
 	}
 	else if (strcmp( "start", argv[1] ) == 0) {
 #ifdef NVIPFIX_DEF_POSIX
-		char * appPath = realpath( argv[0], NULL );
+		if (realpath( argv[0], appPath ) == NULL) {
+			nvipfix_log_error("Failed to resolve path of binary");
+			return NV_IPFIX_RETURN_CODE_ARGS_ERROR;
+		}
 #endif
 
 		int rc = main_daemon( appPath );
@@ -111,7 +118,7 @@ int main( int argc, char * argv[] )
 	}
 	else if (strcmp( "stop", argv[1] ) == 0) {
 #ifdef NVIPFIX_DEF_POSIX
-		char * appPath = shm_name_escape( realpath( argv[0], NULL ) );
+		appPath = shm_name_escape( realpath( argv[0], appPath) );
 
 		int shmHandle = shm_open( appPath, O_RDWR, 0 );
 
