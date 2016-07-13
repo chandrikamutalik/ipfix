@@ -128,7 +128,7 @@ int main( int argc, char * argv[] )
 			return NV_IPFIX_RETURN_CODE_DAEMON_SHARED_MEMORY_ERROR;
 		}
 
-		volatile bool * isRunning = mmap( NULL, sizeof (bool), PROT_READ | PROT_WRITE, MAP_SHARED, shmHandle, 0 );
+		volatile bool * isRunning = (bool *)mmap( NULL, sizeof (bool), PROT_READ | PROT_WRITE, MAP_SHARED, shmHandle, 0 );
 
 		if (isRunning == NULL) {
 			nvipfix_log_error( "mmap" );
@@ -150,8 +150,7 @@ int main( int argc, char * argv[] )
 	nvIPFIX_datetime_t endTs = { 0 };
 
 	if (!nvipfix_parse_datetime_iso8601( argv[argIndexTs], &startTs )
-			|| !nvipfix_parse_datetime_iso8601( argv[argIndexTs + 1], &endTs )) {
-
+	    || !nvipfix_parse_datetime_iso8601( argv[argIndexTs + 1], &endTs )) {
 		nvipfix_log_error( "invalid arguments" );
 		Usage();
 		return NV_IPFIX_RETURN_CODE_ARGS_ERROR;
@@ -161,7 +160,9 @@ int main( int argc, char * argv[] )
 		nvipfix_main_export_file( argv[1] + 2, &startTs, &endTs );
 	}
 	else {
-		nvipfix_main_export_nvc( &startTs, &endTs );
+		int within_last;
+		within_last = nvipfix_datetime_to_ctime(&endTs) - nvipfix_datetime_to_ctime(&startTs);
+		nvipfix_main_export_nvc(&startTs, &endTs, within_last);
 	}
 
 	return NV_IPFIX_RETURN_CODE_OK;
@@ -239,7 +240,7 @@ int main_daemon( char * a_shmName )
 				return NV_IPFIX_RETURN_CODE_DAEMON_SHARED_MEMORY_ERROR;
 			}
 
-			isRunning = mmap( NULL, sizeof (bool), PROT_READ | PROT_WRITE, MAP_SHARED, shmHandle, 0 );
+			isRunning = (bool *)mmap( NULL, sizeof (bool), PROT_READ | PROT_WRITE, MAP_SHARED, shmHandle, 0 );
 
 			if (isRunning == NULL) {
 				nvipfix_log_error( "mmap" );
@@ -253,29 +254,20 @@ int main_daemon( char * a_shmName )
 			*isRunning = true;
 #endif
 
+			nvIPFIX_datetime_t startTs = { 0 };
+			nvIPFIX_datetime_t endTs = { 0 };
+
 			time_t startT = time( NULL );
+			nvIPFIX_timespan_t exportInterval = nvipfix_config_get_export_interval();
+			int waitSeconds = NVIPFIX_TIMESPAN_GET_SECONDS( &exportInterval );
 
 			while (*isRunning) {
-				nvIPFIX_timespan_t exportInterval = nvipfix_config_get_export_interval();
-				time_t nowT = time( NULL );
-				double timeDiff = difftime( nowT, startT );
-				int waitSeconds = NVIPFIX_TIMESPAN_GET_SECONDS( &exportInterval ) - timeDiff;
-
-				if (waitSeconds > 0) {
 #ifdef NVIPFIX_DEF_POSIX
-					sleep( waitSeconds );
+				sleep( waitSeconds );
 #endif
-
-					nowT = time( NULL );
-				}
-
-				nvIPFIX_datetime_t startTs = { 0 };
-				nvIPFIX_datetime_t endTs = { 0 };
-
-				startT++;
-
+				time_t nowT = time( NULL );
 				if (nvipfix_ctime_to_datetime( &startTs, &startT ) &&  nvipfix_ctime_to_datetime( &endTs, &nowT )) {
-					nvipfix_main_export_nvc( &startTs, &endTs );
+					nvipfix_main_export_nvc( &startTs, &endTs, waitSeconds );
 				}
 
 				startT = nowT;

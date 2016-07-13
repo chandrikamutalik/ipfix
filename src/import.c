@@ -322,10 +322,11 @@ static int nvipfix_import_conn_stat_handler( void * a_arg, uint64_t a_fields, nv
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
 nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host, 
-    const nvIPFIX_CHAR * a_login, const nvIPFIX_CHAR * a_password,
-	const nvIPFIX_datetime_t * a_startTs, const nvIPFIX_datetime_t * a_endTs )
+    const nvIPFIX_CHAR * a_login, const nvIPFIX_CHAR * a_password, 
+    const nvIPFIX_datetime_t * a_startTs, const nvIPFIX_datetime_t * a_endTs, int within_last )
 {
     nvIPFIX_data_record_list_t * result = NULL;
+    timespec_t ts_now;
 
     NVIPFIX_ERROR_INIT( error );
 
@@ -345,24 +346,24 @@ nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host,
     }
     
     nvOS_result_t nvcResult;
-	int nvcError;
+    int nvcError;
 
-	nvcError = nvc_connect( &io );
+    nvcError = nvc_connect( &io );
     NVIPFIX_ERROR_RAISE_IF( nvcError != 0, error, NV_IPFIX_ERROR_CODE_NVC_CONNECT, Connect, 
         "nvc_connect: %d", nvcError );
     
-	if (a_login != NULL && a_password != NULL) {
+    if (a_login != NULL && a_password != NULL) {
 		nvcError = nvc_authenticate( &io,
 				NVIPFIX_CHAR_PTR_TO_CCHAR_PTR( a_login ),
 				NVIPFIX_CHAR_PTR_TO_CCHAR_PTR( a_password ),
 				&nvcResult );
-	} 
+    } 
     else {
 		char userName[nvc_PCL_NAME_LEN];
 		nvcError = nvc_check_uid( &io, userName, sizeof userName, &nvcResult );
-	}
+    }
 
-    NVIPFIX_ERROR_RAISE_IF( nvcResult.res_code != 0, error, NV_IPFIX_ERROR_CODE_NVC_AUTH, Auth,
+    NVIPFIX_ERROR_RAISE_IF( nvcResult.res_status != nvOS_SUCCESS, error, NV_IPFIX_ERROR_CODE_NVC_AUTH, Auth,
         "%s", nvcResult.res_msg );
 
     NVIPFIX_ERROR_RAISE_IF( nvcError != 0, error, NV_IPFIX_ERROR_CODE_NVC_AUTH, Auth, 
@@ -370,10 +371,9 @@ nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host,
 
     nvc_conn_t filter = { { 0 } };
     uint64_t filterFields = 0;
-    filter.conn_args.start_time = nvipfix_datetime_to_ctime( a_startTs );
-    nvc_FIELD_FLAG_SET( filterFields, nvc_conn_args_start_time );
-    filter.conn_args.end_time = nvipfix_datetime_to_ctime( a_endTs );
-    nvc_FIELD_FLAG_SET( filterFields, nvc_conn_args_end_time );
+    clock_gettime( CLOCK_REALTIME, &ts_now );
+    filter.conn_args.within_last = within_last;
+    nvc_FIELD_FLAG_SET( filterFields, nvc_stats_args_within_last );
 
     nvc_format_args_t format = { { 0 } };
     uint64_t formatFields = 0;
@@ -390,7 +390,7 @@ nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host,
         nvipfix_import_conn_stat_handler, &result,
 		&nvcResult );
 
-    NVIPFIX_ERROR_RAISE_IF( nvcResult.res_code != 0, error, NV_IPFIX_ERROR_CODE_NVC_CONN_STAT, ConnStat,
+    NVIPFIX_ERROR_RAISE_IF( nvcResult.res_status != nvOS_SUCCESS, error, NV_IPFIX_ERROR_CODE_NVC_CONN_STAT, ConnStat,
         "%s", nvcResult.res_msg );
 
     NVIPFIX_ERROR_RAISE_IF( nvcError != 0, error, NV_IPFIX_ERROR_CODE_NVC_CONN_STAT, ConnStat, 
@@ -400,11 +400,11 @@ nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host,
     nvc_logout( &io );
 
     NVIPFIX_ERROR_HANDLER( Auth );
-	nvc_disconnect( &io );
+    nvc_disconnect( &io );
     
     NVIPFIX_ERROR_HANDLER( Connect );
-	nvc_done( &io );
-    
+    nvc_done( &io );
+ 
     return result;
 }
 #pragma GCC diagnostic pop

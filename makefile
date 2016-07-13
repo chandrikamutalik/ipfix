@@ -4,7 +4,7 @@ ifndef CC
 	CC := gcc
 endif
 
-CFLAGS :=
+CFLAGS := $(PLAT_CFLAGS)
 
 RM := rm -rf
 CP := cp

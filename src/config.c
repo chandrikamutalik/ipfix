@@ -75,7 +75,7 @@ static bool nvipfix_config_parse_transport( const char *, void * );
 static const nvIPFIX_setting_t * nvipfix_config_get_setting( const char *, int );
 
 
-static const char * ConfigFileName = "nvipfix.config";
+static const char * ConfigFileName = "/var/nvOS/etc/Local/nvipfix.config";
 
 enum {
 	SizeofFileBuffer = 4096,

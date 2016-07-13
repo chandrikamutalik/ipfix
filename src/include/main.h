@@ -49,7 +49,7 @@ void nvipfix_main_export_file( const nvIPFIX_CHAR * a_filename,
  * @param a_startTs
  * @param a_endTs
  */
-void nvipfix_main_export_nvc( const nvIPFIX_datetime_t * a_startTs, const nvIPFIX_datetime_t * a_endTs );
+void nvipfix_main_export_nvc( const nvIPFIX_datetime_t * a_startTs, const nvIPFIX_datetime_t * a_endTs, int within_last );
 
 
 #endif /* __NVIPFIX_MAIN_H */

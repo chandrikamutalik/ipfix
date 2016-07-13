@@ -56,8 +56,8 @@ void nvipfix_main_export( nvIPFIX_data_record_list_t * a_dataRecords,
 	nvipfix_config_collectors_free( collectors );
 }
 
-void nvipfix_main_export_file( const nvIPFIX_CHAR * a_filename,
-		const nvIPFIX_datetime_t * a_startTs, const nvIPFIX_datetime_t * a_endTs )
+void nvipfix_main_export_file( const nvIPFIX_CHAR * a_filename, 
+	const nvIPFIX_datetime_t *a_startTs, const nvIPFIX_datetime_t *a_endTs)
 {
 	nvIPFIX_data_record_list_t * dataRecords = nvipfix_import_file( a_filename );
 	nvipfix_main_export( dataRecords, a_startTs, a_endTs );
@@ -65,8 +65,10 @@ void nvipfix_main_export_file( const nvIPFIX_CHAR * a_filename,
 	nvipfix_data_list_free( dataRecords );
 }
 
-void nvipfix_main_export_nvc( const nvIPFIX_datetime_t * a_startTs, const nvIPFIX_datetime_t * a_endTs )
+void nvipfix_main_export_nvc(const nvIPFIX_datetime_t *a_startTs, 
+    const nvIPFIX_datetime_t *a_endTs, int within_last)
 {
+FILE *fh;
 	nvIPFIX_switch_info_t * switchInfo = nvipfix_config_switch_info_get();
 	nvipfix_log_debug( "switch: host = %s, login = %s, password = %s",
 			switchInfo->host,
@@ -78,7 +80,7 @@ void nvipfix_main_export_nvc( const nvIPFIX_datetime_t * a_startTs, const nvIPFI
 #ifdef NVIPFIX_DEF_ENABLE_NVC
 	dataRecords = nvipfix_import_nvc(
 			switchInfo->host, switchInfo->login, switchInfo->password,
-			a_startTs, a_endTs );
+			a_startTs, a_endTs, within_last);
 #endif
 
 	nvipfix_main_export( dataRecords, a_startTs, a_endTs );

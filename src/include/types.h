@@ -75,6 +75,14 @@
 	(unsigned)((a).octets[4]), \
 	(unsigned)((a).octets[5])
 
+#define NVIPFIX_MAC_ADDRESS( a ) \
+	(unsigned)((a)[0]), \
+	(unsigned)((a)[1]), \
+	(unsigned)((a)[2]), \
+	(unsigned)((a)[3]), \
+	(unsigned)((a)[4]), \
+	(unsigned)((a)[5])
+
 #define NVIPFIX_CHAR_PTR_TO_CCHAR_PTR( a_ptr ) (char *)(a_ptr)
 
 #define NVIPFIX_HASHTABLE8_ADD( a_table, a_key, a_keyLen, a_value ) \

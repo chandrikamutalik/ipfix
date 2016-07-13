@@ -370,13 +370,24 @@ nvIPFIX_error_t nvipfix_export(
 		record = record->next;
 	}
 
-	NVIPFIX_ERROR_RAISE_IF( !fBufSetInternalTemplate( buffer, statsTemplateId, NULL ),
-			error, NV_IPFIX_ERROR_CODE_EXPORT_SET_INTERNAL_TEMPLATE, SetInternalTemplateStats,
-			"%s", "Set internal template (stats) failed" );
+	if (!fBufEmit(buffer, &fbError)) {
+		NVIPFIX_TLOG_ERROR( "fBufEmit: %s\n", fbError->message );
+		g_clear_error( &fbError );
+	}
 
-	NVIPFIX_ERROR_RAISE_IF( !fBufSetExportTemplate( buffer, statsTemplateIdExt, NULL ),
-			error, NV_IPFIX_ERROR_CODE_EXPORT_SET_EXPORT_TEMPLATE, SetExportTemplateStats,
-			"%s", "Set export template (stats) failed" );
+	if (!fBufSetInternalTemplate( buffer, statsTemplateId, &fbError )) {
+		NVIPFIX_TLOG_ERROR( "Set internal template (stats) failed: %s", fbError->message );
+		error.code = NV_IPFIX_ERROR_CODE_EXPORT_SET_INTERNAL_TEMPLATE;
+		g_clear_error( &fbError );
+		goto errorSetInternalTemplateStats;
+	}
+
+	if (!fBufSetExportTemplate( buffer, statsTemplateIdExt, &fbError )) {
+		NVIPFIX_TLOG_ERROR( "Set export template (stats) failed: %s", fbError->message );
+		error.code = NV_IPFIX_ERROR_CODE_EXPORT_SET_EXPORT_TEMPLATE;
+		g_clear_error( &fbError );
+		goto errorSetExportTemplateStats;
+	}
 
 	collector->flowRecordCount += recordCount;
 	collector->messageCount++;
@@ -385,10 +396,15 @@ nvIPFIX_error_t nvipfix_export(
 	stats.exportedFlowRecordTotalCount = collector->flowRecordCount;
 	stats.exportedMessageTotalCount = collector->messageCount;
 
-	NVIPFIX_TLOG_ERROR_IF(
-			!fBufAppend( buffer, (uint8_t *) &stats, sizeof (nvIPFIX_export_stats_data_t), NULL ),
-			"%s: fBufAppend (stats)", __func__ );
+	if (!fBufAppend( buffer, (uint8_t *) &stats, sizeof (nvIPFIX_export_stats_data_t), &fbError )) {
+		NVIPFIX_TLOG_ERROR( "%s: fBufAppend (stats), %s", __func__, fbError->message );
+		g_clear_error( &fbError );
+	}
 
+	if (!fBufEmit(buffer, &fbError)) {
+		NVIPFIX_TLOG_ERROR( "fBufEmit: %s\n", fbError->message );
+		g_clear_error( &fbError );
+	}
 	NVIPFIX_ERROR_HANDLER( SetExportTemplateStats );
 
 	NVIPFIX_ERROR_HANDLER( SetInternalTemplateStats );
