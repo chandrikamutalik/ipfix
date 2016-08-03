@@ -380,9 +380,7 @@ nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host,
     format.limit_output = 10000;
     nvc_FIELD_FLAG_SET( formatFields, nvc_format_args_limit_output );
 
-    NVIPFIX_LOG_DEBUG( "start time = %d, end time = %d, diff = %d",
-    		(unsigned) filter.conn_args.start_time, (unsigned) filter.conn_args.end_time,
-			(int)(filter.conn_args.end_time - filter.conn_args.start_time) );
+    NVIPFIX_LOG_DEBUG( "within last = %u", (unsigned) filter.conn_args.within_last );
 
     nvcError = nvc_show_conn_stat( &io, 
         filterFields, &filter, 

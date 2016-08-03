@@ -48,11 +48,6 @@
 		.parseValue = a_parseValue }
 
 
-typedef struct _nvIPFIX_collector_info_list_item_t {
-	struct _nvIPFIX_collector_info_list_item_t * next;
-	nvIPFIX_collector_info_t * current;
-} nvIPFIX_collector_info_list_item_t;
-
 typedef struct _nvIPFIX_setting_t {
 	const char * name;
 	int id;
@@ -74,8 +69,7 @@ static bool nvipfix_config_parse_transport( const char *, void * );
 
 static const nvIPFIX_setting_t * nvipfix_config_get_setting( const char *, int );
 
-
-static const char * ConfigFileName = "/var/nvOS/etc/Local/nvipfix.config";
+static const char * ConfigFileName = CONFIG_BASE_DIR "/nvipfix.config";
 
 enum {
 	SizeofFileBuffer = 4096,
@@ -162,108 +156,11 @@ void nvipfix_config_init( void )
 	}
 }
 
-nvIPFIX_collector_info_t * nvipfix_config_collectors_get( size_t * a_count )
+nvIPFIX_collector_info_list_item_t * nvipfix_config_collectors_get( )
 {
-	NVIPFIX_NULL_ARGS_GUARD_1( a_count, NULL );
-
 	nvipfix_config_init();
 
-	size_t count = 0;
-	char * result = NULL;
-
-	#pragma omp critical (nvipfixCritical_CollectorList)
-	{
-		nvIPFIX_collector_info_list_item_t * collector = CollectorList;
-
-		while (collector != NULL) {
-			count++;
-			collector = collector->next;
-		}
-
-		NVIPFIX_LOG_DEBUG( "collectors count = %d", (unsigned)count );
-
-		size_t bufSize = count * SizeofCollectorInfo;
-		size_t bufIndex = 0;
-		size_t bufTop = bufSize;
-
-		collector = CollectorList;
-
-		while (collector != NULL) {
-			size_t nameLen = NVIPFIX_STRLEN_CHECKED( collector->current->name ) + 1;
-			size_t hostLen = NVIPFIX_STRLEN_CHECKED( collector->current->host ) + 1;
-			size_t portLen = NVIPFIX_STRLEN_CHECKED( collector->current->port ) + 1;
-			size_t keyLen = snprintf( NULL, 0,
-					NVIPFIX_FORMAT_COLLECTOR_KEY, collector->current->host, collector->current->port );
-
-			bufSize += nameLen + hostLen + portLen + (keyLen + 1);
-			void * ptr = realloc( result, bufSize );
-
-			if (ptr == NULL) {
-				free( result );
-				result = NULL;
-				break;
-			}
-
-			result = ptr;
-			nvIPFIX_collector_info_t * collectorPtr = (nvIPFIX_collector_info_t *)(result + bufIndex);
-
-			memcpy( collectorPtr, collector->current, SizeofCollectorInfo );
-
-			if (nameLen > 1) {
-				memcpy( result + bufTop, collector->current->name, nameLen );
-			}
-			else {
-				*(result + bufTop) = '\0';
-			}
-
-			collectorPtr->name = result + bufTop;
-
-			bufTop += nameLen;
-
-			if (hostLen > 1) {
-				memcpy( result + bufTop, collector->current->host, hostLen );
-			}
-			else {
-				*(result + bufTop) = '\0';
-			}
-
-			collectorPtr->host = result + bufTop;
-
-			bufTop += hostLen;
-
-			if (portLen > 1) {
-				memcpy( result + bufTop, collector->current->port, portLen );
-			}
-			else {
-				*(result + bufTop) = '\0';
-			}
-
-			collectorPtr->port = result + bufTop;
-
-			bufTop += portLen;
-
-			collectorPtr->key.value = (const nvIPFIX_BYTE *)(result + bufTop);
-			collectorPtr->key.len = keyLen;
-			snprintf( (char *)collectorPtr->key.value, keyLen + 1,
-					NVIPFIX_FORMAT_COLLECTOR_KEY, collector->current->host, collector->current->port );
-
-			bufTop = bufSize;
-			bufIndex += SizeofCollectorInfo;
-
-			collector = collector->next;
-		}
-	}
-
-	*a_count = count;
-
-	return (nvIPFIX_collector_info_t *)result;
-}
-
-void nvipfix_config_collectors_free( nvIPFIX_collector_info_t * a_collectors )
-{
-	NVIPFIX_NULL_ARGS_GUARD_1_VOID( a_collectors );
-
-	free( a_collectors );
+	return (CollectorList);
 }
 
 void nvipfix_config_read( void )

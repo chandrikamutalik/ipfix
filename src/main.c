@@ -30,30 +30,22 @@
 void nvipfix_main_export( nvIPFIX_data_record_list_t * a_dataRecords,
 		const nvIPFIX_datetime_t * a_startTs, const nvIPFIX_datetime_t * a_endTs )
 {
-	size_t collectorsCount;
-	nvIPFIX_collector_info_t * collectors = nvipfix_config_collectors_get( &collectorsCount );
+	nvIPFIX_collector_info_list_item_t * collectors = nvipfix_config_collectors_get( );
 
-	if (collectors != NULL) {
-		if (a_dataRecords != NULL) {
-			for (size_t i = 0; i < collectorsCount; i++) {
-				nvipfix_log_debug( "collector: name = %s, host = %s, ip = %d.%d.%d.%d, port = %s",
-						collectors[i].name, collectors[i].host,
-						NVIPFIX_ARGSF_IP_ADDRESS( collectors[i].ipAddress ),
-						collectors[i].port );
-
-				nvipfix_export( collectors[i].host, collectors[i].port, collectors[i].transport, &(collectors[i].key),
-						a_dataRecords, a_startTs, a_endTs );
-			}
-		}
-		else {
-			nvipfix_log_warning( "no data" );
-		}
-	}
-	else {
+	if (collectors == NULL) {
 		nvipfix_log_warning( "no collector(s) defined" );
 	}
+	while (collectors != NULL) {
+		nvIPFIX_collector_info_t *collector = collectors->current;
 
-	nvipfix_config_collectors_free( collectors );
+		nvipfix_log_debug( "collector: name = %s, host = %s, ip = %d.%d.%d.%d, port = %s",
+				collector->name, collector->host,
+				NVIPFIX_ARGSF_IP_ADDRESS( collector->ipAddress ), collector->port );
+
+		nvipfix_export( collector->host, collector->port, collector->transport,
+				a_dataRecords, a_startTs, a_endTs, &collector->ctx );
+		collectors = collectors->next;
+	}
 }
 
 void nvipfix_main_export_file( const nvIPFIX_CHAR * a_filename, 
@@ -68,7 +60,6 @@ void nvipfix_main_export_file( const nvIPFIX_CHAR * a_filename,
 void nvipfix_main_export_nvc(const nvIPFIX_datetime_t *a_startTs, 
     const nvIPFIX_datetime_t *a_endTs, int within_last)
 {
-FILE *fh;
 	nvIPFIX_switch_info_t * switchInfo = nvipfix_config_switch_info_get();
 	nvipfix_log_debug( "switch: host = %s, login = %s, password = %s",
 			switchInfo->host,

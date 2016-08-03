@@ -30,7 +30,8 @@
 
 
 #define NVIPFIX_PEN 47269
-
+#define	NVIPFIX_FLOW_TID	0xA000
+#define	NVIPFIX_STATS_TID	0xA800
 #define NVIPFIX_IE_LATENCY_NAME "latencyMicroseconds"
 
 
@@ -54,10 +55,10 @@ nvIPFIX_error_t nvipfix_export(
 		const nvIPFIX_CHAR * a_host,
 		const nvIPFIX_CHAR * a_port,
 		nvIPFIX_TRANSPORT a_transport,
-		const nvIPFIX_hashtable_key_t * a_key,
 		const nvIPFIX_data_record_list_t * a_data,
 		const nvIPFIX_datetime_t * a_startTs,
-		const nvIPFIX_datetime_t * a_endTs );
+		const nvIPFIX_datetime_t * a_endTs,
+		void **ptr );
 
 
 #endif /* __NVIPFIX_EXPORT_H */

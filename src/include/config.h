@@ -25,6 +25,8 @@
 #include "types.h"
 
 
+#define	CONFIG_BASE_DIR	"/var/nvOS/etc/Local"
+
 /**
  *
  */
@@ -56,7 +58,13 @@ typedef struct {
 	nvIPFIX_OCTET dscp;
 	nvIPFIX_TRANSPORT transport;	//!< collector's transport
 	nvIPFIX_hashtable_key_t key;
+	void *ctx;
 } nvIPFIX_collector_info_t;
+
+typedef struct _nvIPFIX_collector_info_list_item_t {
+        struct _nvIPFIX_collector_info_list_item_t * next;
+        nvIPFIX_collector_info_t * current;
+} nvIPFIX_collector_info_list_item_t;
 
 
 /**
@@ -78,16 +86,11 @@ void nvipfix_config_switch_info_free( nvIPFIX_switch_info_t * a_switchInfo );
 nvIPFIX_timespan_t nvipfix_config_get_export_interval( void );
 
 /**
- * get array of collectors
- * @param [out] a_count array length
- * @return pointer to array
+ * get linked list of collectors
+ * @return pointer to list
  */
-nvIPFIX_collector_info_t * nvipfix_config_collectors_get( size_t * a_count );
+nvIPFIX_collector_info_list_item_t * nvipfix_config_collectors_get( );
 
-/**
- * free array of collectors
- * @param a_collectors pointer to array
- */
 void nvipfix_config_collectors_free( nvIPFIX_collector_info_t * a_collectors );
 
 

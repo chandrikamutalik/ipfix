@@ -25,7 +25,7 @@
 #include "include/types.h"
 #include "include/error.h"
 #include "include/log.h"
-
+#include "include/config.h"
 #include "include/export.h"
 
 
@@ -36,6 +36,16 @@ typedef struct {
 	uint64_t messageCount;
 	uint64_t flowRecordCount;
 } nvIPFIX_collector_t;
+
+typedef struct {
+	nvIPFIX_collector_t *collector;
+	fbSession_t * session;
+	fBuf_t	*buffer;
+	uint16_t templateId;
+	uint16_t templateIdExt;
+	uint16_t statsTemplateId;
+	uint16_t  statsTemplateIdExt;
+} nvIPFIX_collector_private_t;
 
 typedef struct {
 	uint32_t flowStartSeconds;
@@ -109,12 +119,8 @@ static fbInfoElementSpec_t StatsTemplate[] = {
 
 static fbInfoModel_t * InfoModel = NULL;
 
-static nvIPFIX_hashtable8_t * CollectorsTable = NULL;
-
-
 static bool nvipfix_export_init( void );
 static void nvipfix_export_cleanup( void );
-static const nvIPFIX_collector_t * nvipfix_export_get_collector( const nvIPFIX_hashtable_key_t * a_key );
 
 
 #pragma GCC diagnostic push
@@ -160,146 +166,144 @@ bool nvipfix_export_init( void )
 
 void nvipfix_export_cleanup( void )
 {
+	nvIPFIX_collector_info_list_item_t * collectors = nvipfix_config_collectors_get( );
+	while (collectors != NULL) {
+		nvIPFIX_collector_info_t *collector = collectors->current;
+		nvIPFIX_collector_private_t * priv = collector->ctx;
+
+		if (priv != NULL) {
+			if (priv->buffer != NULL) {
+				fBufFree( priv->buffer );
+
+			} else if (priv->session != NULL) {
+				fbSessionFree(priv->session);
+			}
+			if (priv->collector != NULL) {
+				free(priv->collector);
+			}
+		}
+		collectors = collectors->next;
+	}
+			
 	if (InfoModel != NULL) {
 		fbInfoModelFree( InfoModel );
 	}
 }
 
-static void nvipfix_export_free_collector( const void * a_collector )
-{
-	free( (void *)a_collector );
-}
-
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-but-set-variable"
-const nvIPFIX_collector_t * nvipfix_export_get_collector( const nvIPFIX_hashtable_key_t * a_key )
-{
-	const nvIPFIX_collector_t * result = NULL;
-
-	NVIPFIX_ERROR_INIT( error );
-
-	#pragma omp critical (nvipfixCritical_CollectorsTable)
-	{
-		result = nvipfix_hashtable8_get( CollectorsTable, a_key->value, a_key->len );
-
-		if (result == NULL) {
-			nvIPFIX_collector_t * collector = malloc( sizeof (nvIPFIX_collector_t) );
-
-			NVIPFIX_ERROR_RAISE_IF( collector == NULL, error, NV_IPFIX_ERROR_CODE_MALLOC, CollectorAlloc,
-					"%s", "Collector malloc failed" );
-
-			collector->messageCount = 0;
-			collector->flowRecordCount = 0;
-
-			CollectorsTable = nvipfix_hashtable8_add( CollectorsTable,
-				a_key->value, a_key->len, collector,
-				NULL, nvipfix_export_free_collector );
-
-			NVIPFIX_ERROR_RAISE_IF( CollectorsTable == NULL, error, NV_IPFIX_ERROR_CODE_HASHTABLE_ADD, CollectorAdd,
-					"%s", "Collector add failed" );
-
-			result = collector;
-
-			NVIPFIX_ERROR_RAISE( error, NV_IPFIX_ERROR_CODE_NONE, None );
-
-			NVIPFIX_ERROR_HANDLER( CollectorAdd );
-			free( collector );
-
-			NVIPFIX_ERROR_HANDLER( CollectorAlloc );
-
-			NVIPFIX_ERROR_HANDLER( None );
-		}
-	}
-
-	return result;
-}
-#pragma GCC diagnostic pop
-
 nvIPFIX_error_t nvipfix_export(
 		const nvIPFIX_CHAR * a_host,
 		const nvIPFIX_CHAR * a_port,
 		nvIPFIX_TRANSPORT a_transport,
-		const nvIPFIX_hashtable_key_t * a_key,
 		const nvIPFIX_data_record_list_t * a_data,
 		const nvIPFIX_datetime_t * a_startTs,
-		const nvIPFIX_datetime_t * a_endTs )
+		const nvIPFIX_datetime_t * a_endTs,
+		void **ptr )
 {
+	nvIPFIX_collector_t * collector = NULL;
+	fbSession_t * session;
+	fBuf_t * buffer;
+	GError * fbError = NULL;
+	uint16_t templateId;
+	uint16_t templateIdExt;
+	uint16_t statsTemplateId;
+	uint16_t statsTemplateIdExt;
+
 	NVIPFIX_ERROR_INIT( error );
 
 	NVIPFIX_ERROR_RAISE_IF( !nvipfix_export_init(), error, NV_IPFIX_ERROR_CODE_EXPORT_INIT, Init, "", NULL );
 
-	nvIPFIX_collector_t * collector = (nvIPFIX_collector_t *)nvipfix_export_get_collector( a_key );
-	NVIPFIX_ERROR_RAISE_IF( collector == NULL, error, NV_IPFIX_ERROR_CODE_EXPORT_GET_COLLECTOR, CollectorGet,
-			"%s", "Unable to get collector" );
+	*ptr = NULL;
+	nvIPFIX_collector_private_t * priv = (nvIPFIX_collector_private_t *)(*ptr);
+	if (priv == NULL) {
+		priv = calloc( 1, sizeof (nvIPFIX_collector_private_t) );
+		NVIPFIX_ERROR_RAISE_IF( priv == NULL, error, NV_IPFIX_ERROR_CODE_MALLOC, CollectorAlloc,
+			"%s", "Collector malloc failed" );
+		collector = malloc( sizeof (nvIPFIX_collector_t) );
+		NVIPFIX_ERROR_RAISE_IF( collector == NULL, error, NV_IPFIX_ERROR_CODE_MALLOC, CollectorAlloc,
+			"%s", "Collector malloc failed" );
 
-	fbSession_t * session = fbSessionAlloc( InfoModel );
-	NVIPFIX_ERROR_RAISE_IF( session == NULL, error, NV_IPFIX_ERROR_CODE_ALLOCATE_SESSION, SessionAlloc,
+		*ptr = priv;
+		collector->messageCount = 0;
+		collector->flowRecordCount = 0;
+		priv->collector = collector;
+
+		session = fbSessionAlloc( InfoModel );
+		NVIPFIX_ERROR_RAISE_IF( session == NULL, error, NV_IPFIX_ERROR_CODE_ALLOCATE_SESSION, SessionAlloc,
 			"%s", "fbSessionAlloc failed" );
+		priv->session = session;
 
-	fbConnSpec_t connSpec = { 0 };
-	connSpec.transport = (a_transport == NV_IPFIX_TRANSPORT_TCP) ? FB_TCP
-			: (a_transport == NV_IPFIX_TRANSPORT_UDP) ? FB_UDP
-			: FB_SCTP ;
+		fbConnSpec_t connSpec = { 0 };
+		connSpec.transport = (a_transport == NV_IPFIX_TRANSPORT_TCP) ? FB_TCP
+				: (a_transport == NV_IPFIX_TRANSPORT_UDP) ? FB_UDP
+				: FB_SCTP ;
 
-	connSpec.host = (char *)a_host;
-	connSpec.svc = (char *)a_port;
-	connSpec.ssl_ca_file = NULL;
-	connSpec.ssl_cert_file = NULL;
-	connSpec.ssl_key_file = NULL;
-	connSpec.ssl_key_pass = NULL;
-	connSpec.vai = NULL;
-	connSpec.vssl_ctx = NULL;
+		connSpec.host = (char *)a_host;
+		connSpec.svc = (char *)a_port;
+		connSpec.ssl_ca_file = NULL;
+		connSpec.ssl_cert_file = NULL;
+		connSpec.ssl_key_file = NULL;
+		connSpec.ssl_key_pass = NULL;
+		connSpec.vai = NULL;
+		connSpec.vssl_ctx = NULL;
 
-	NVIPFIX_TLOG_DEBUG( "host = %s, port = %s, transport = %d",
+		NVIPFIX_TLOG_DEBUG( "host = %s, port = %s, transport = %d",
 			connSpec.host,
 			connSpec.svc,
 			(unsigned)connSpec.transport );
 
-	fbExporter_t * exporter = fbExporterAllocNet( &connSpec );
-	//fbExporter_t * exporter = fbExporterAllocFile( "./ipfix.out" );
-	NVIPFIX_ERROR_RAISE_IF( exporter == NULL, error, NV_IPFIX_ERROR_CODE_ALLOCATE_EXPORTER, ExporterAlloc,
+		fbExporter_t * exporter = fbExporterAllocNet( &connSpec );
+		//fbExporter_t * exporter = fbExporterAllocFile( "./ipfix.out" );
+		NVIPFIX_ERROR_RAISE_IF( exporter == NULL, error, NV_IPFIX_ERROR_CODE_ALLOCATE_EXPORTER, ExporterAlloc,
 			"%s", "Exporter alloc failed" );
 
-	fbTemplate_t * template = fbTemplateAlloc( InfoModel );
-	NVIPFIX_ERROR_RAISE_IF( template == NULL, error, NV_IPFIX_ERROR_CODE_ALLOCATE_TEMPLATE, TemplateAlloc,
+		fbTemplate_t * template = fbTemplateAlloc( InfoModel );
+		NVIPFIX_ERROR_RAISE_IF( template == NULL, error, NV_IPFIX_ERROR_CODE_ALLOCATE_TEMPLATE, TemplateAlloc,
 			"%s", "Template alloc failed" );
 
-	fbTemplate_t * statsTemplate = fbTemplateAlloc( InfoModel );
-	NVIPFIX_ERROR_RAISE_IF( statsTemplate == NULL, error, NV_IPFIX_ERROR_CODE_ALLOCATE_TEMPLATE, StatsTemplateAlloc,
+		fbTemplate_t * statsTemplate = fbTemplateAlloc( InfoModel );
+		NVIPFIX_ERROR_RAISE_IF( statsTemplate == NULL, error, NV_IPFIX_ERROR_CODE_ALLOCATE_TEMPLATE, StatsTemplateAlloc,
 			"%s", "Stats template alloc failed" );
 
-	GError * fbError = NULL;
-
-	NVIPFIX_ERROR_RAISE_IF( !fbTemplateAppendSpecArray( template, Template, UINT32_MAX, &fbError ),
+		NVIPFIX_ERROR_RAISE_IF( !fbTemplateAppendSpecArray( template, Template, UINT32_MAX, &fbError ),
 			error, NV_IPFIX_ERROR_CODE_EXPORT_TEMPLATE_APPEND_SPEC, TemplateAppendSpec,
 			"%s", "Template append spec failed" );
 
-	NVIPFIX_ERROR_RAISE_IF( !fbTemplateAppendSpecArray( statsTemplate, StatsTemplate, UINT32_MAX, &fbError ),
+		NVIPFIX_ERROR_RAISE_IF( !fbTemplateAppendSpecArray( statsTemplate, StatsTemplate, UINT32_MAX, &fbError ),
 			error, NV_IPFIX_ERROR_CODE_EXPORT_TEMPLATE_APPEND_SPEC, StatsTemplateAppendSpec,
 			"%s", "Stats template append spec failed" );
 
-	uint16_t templateId;
-	uint16_t templateIdExt;
-	NVIPFIX_ERROR_RAISE_IF(
-			(templateId = fbSessionAddTemplate( session, TRUE, FB_TID_AUTO, template, &fbError )) == 0
-			|| (templateIdExt = fbSessionAddTemplate( session, FALSE, FB_TID_AUTO, template, &fbError )) == 0,
+		NVIPFIX_ERROR_RAISE_IF(
+			(templateId = fbSessionAddTemplate( session, TRUE, NVIPFIX_FLOW_TID, template, &fbError )) == 0
+			|| (templateIdExt = fbSessionAddTemplate( session, FALSE, NVIPFIX_FLOW_TID, template, &fbError )) == 0,
 			error, NV_IPFIX_ERROR_CODE_EXPORT_SESSION_ADD_TEMPLATE, SessionAddTemplate,
 			"%s", "Session add template failed" );
 
-	uint16_t statsTemplateId;
-	uint16_t statsTemplateIdExt;
-	NVIPFIX_ERROR_RAISE_IF(
-			(statsTemplateId = fbSessionAddTemplate( session, TRUE, FB_TID_AUTO, statsTemplate, &fbError )) == 0
-			|| (statsTemplateIdExt = fbSessionAddTemplate( session, FALSE, FB_TID_AUTO, statsTemplate, &fbError )) == 0,
+		NVIPFIX_ERROR_RAISE_IF(
+			(statsTemplateId = fbSessionAddTemplate( session, TRUE, NVIPFIX_STATS_TID, statsTemplate, &fbError )) == 0
+			|| (statsTemplateIdExt = fbSessionAddTemplate( session, FALSE, NVIPFIX_STATS_TID, statsTemplate, &fbError )) == 0,
 			error, NV_IPFIX_ERROR_CODE_EXPORT_SESSION_ADD_TEMPLATE, SessionAddTemplate,
 			"%s", "Session add stats template failed" );
 
-	NVIPFIX_TLOG_DEBUG( "templateId = %d, stats templateId = %d", (unsigned)templateId, (unsigned)statsTemplateId );
+		NVIPFIX_TLOG_DEBUG( "templateId = %d, stats templateId = %d", (unsigned)templateId, (unsigned)statsTemplateId );
 
-	fBuf_t * buffer = fBufAllocForExport( session, exporter );
-	NVIPFIX_ERROR_RAISE_IF( buffer == NULL,
+		buffer = fBufAllocForExport( session, exporter );
+		NVIPFIX_ERROR_RAISE_IF( buffer == NULL,
 			error, NV_IPFIX_ERROR_CODE_EXPORT_BUF_ALLOC, BufAlloc,
 			"%s", "Buf alloc failed" );
+		priv->buffer = buffer;
+		priv->templateId = templateId;
+		priv->templateIdExt = templateIdExt;
+		priv->statsTemplateId = statsTemplateId;
+		priv->statsTemplateIdExt = statsTemplateIdExt;
+	}
+
+	collector = priv->collector;
+	buffer = priv->buffer;
+	session = priv->session;
+	templateId = priv->templateId;
+	templateIdExt = priv->templateIdExt;
+	statsTemplateId = priv->statsTemplateId;
+	statsTemplateIdExt = priv->statsTemplateIdExt;
 
 	NVIPFIX_ERROR_RAISE_IF( !fbSessionExportTemplates( session, NULL ),
 			error, NV_IPFIX_ERROR_CODE_EXPORT_SESSION_EXPORT_TEMPLATES, SessionExportTemplates,
@@ -405,6 +409,12 @@ nvIPFIX_error_t nvipfix_export(
 		NVIPFIX_TLOG_ERROR( "fBufEmit: %s\n", fbError->message );
 		g_clear_error( &fbError );
 	}
+
+	return error;
+
+	/*
+	 * These are error return paths.
+	 */
 	NVIPFIX_ERROR_HANDLER( SetExportTemplateStats );
 
 	NVIPFIX_ERROR_HANDLER( SetInternalTemplateStats );
@@ -433,7 +443,12 @@ nvIPFIX_error_t nvipfix_export(
 
 	NVIPFIX_ERROR_HANDLER( SessionAlloc );
 
-	NVIPFIX_ERROR_HANDLER( CollectorGet );
+	if (priv != NULL)
+		free(priv);
+	if (collector != NULL)
+		free(collector);
+
+	NVIPFIX_ERROR_HANDLER( CollectorAlloc );
 
 	NVIPFIX_ERROR_HANDLER( Init );
 

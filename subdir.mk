@@ -9,7 +9,8 @@ $(DIR_SRC)/log.c \
 $(DIR_SRC)/nvipfix.c \
 $(DIR_SRC)/types.c \
 $(DIR_SRC)/main.c \
-$(DIR_SRC)/_test.c
+$(DIR_SRC)/_test.c \
+$(DIR_SRC)/logcfg.S
 
 OBJS += \
 $(DIR_OBJ)/config.o \
@@ -21,7 +22,8 @@ $(DIR_OBJ)/log.o \
 $(DIR_OBJ)/nvipfix.o \
 $(DIR_OBJ)/types.o \
 $(DIR_OBJ)/main.o \
-$(DIR_OBJ)/_test.o 
+$(DIR_OBJ)/_test.o \
+$(DIR_OBJ)/logcfg.o
 
 C_DEPS += \
 $(DIR_DEP)/config.d \
@@ -42,4 +44,9 @@ $(DIR_OBJ)/%.o: $(DIR_SRC)/%.c
 	@echo 'Invoking: Cross GCC Compiler'
 	$(CC) -std=c99 `pkg-config --cflags glib-2.0` $(CFLAGS) -O0 -g3 -Wall -c -fmessage-length=0 -fopenmp -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
 	@echo 'Finished building: $<'
+	@echo ' '
+
+$(DIR_OBJ)/%.o: $(DIR_SRC)/%.S
+	@echo 'Building file: $<'
+	$(CC) -c -o "$@" "$<"
 	@echo ' '

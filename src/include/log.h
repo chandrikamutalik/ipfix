@@ -23,7 +23,9 @@
 
 
 #include "types.h"
+#include "config.h"
 
+#define	LOG4C_CFG	CONFIG_BASE_DIR "/log4c.rc"
 
 #ifdef NVIPFIX_DEF_DEBUG
 #define NVIPFIX_TLOG_DEBUG0( a_fmt, ... ) nvipfix_tlog_debug( NVIPFIX_T( "" NVIPFIX_F_S ": " a_fmt ), __func__, __VA_ARGS__ )

@@ -21,13 +21,16 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <wchar.h>
+#include <unistd.h>
+#include <sys/fcntl.h>
 
 #include "log4c.h"
 
 #include "include/types.h"
-
 #include "include/log.h"
 
+extern unsigned char log4cfg[];
+extern int log4cfg_size;
 
 #define NVIPFIX_LOG_CATEGORY_NAME_MAIN "nvipfix.log.app"
 #define NVIPFIX_LOG_CATEGORY_NAME_ERROR "nvipfix.log.app.error"
@@ -123,8 +126,16 @@ void nvipfix_log_init( void )
 	#pragma omp critical (nvipfixCritical_LogInit)
 	{
 		if (!isInitialized) {
+			/*
+			 * Copy default log4c config if not already present.
+			 */
+			if (access(LOG4C_CFG, F_OK) != 0) {
+				FILE *fh = fopen(LOG4C_CFG, "w");
+				fwrite(log4cfg, log4cfg_size, 1, fh);
+				fclose(fh);
+			}
 			log4c_init();
-			log4c_load( "" );
+			log4c_load( LOG4C_CFG );
 			Category = log4c_category_get( NVIPFIX_LOG_CATEGORY_NAME_MAIN );
 			CategoryError = log4c_category_get( NVIPFIX_LOG_CATEGORY_NAME_ERROR );
 			atexit( nvipfix_log_cleanup );
