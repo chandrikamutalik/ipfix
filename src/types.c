@@ -816,6 +816,8 @@ bool nvipfix_ctime_to_datetime( nvIPFIX_datetime_t * a_datetime, const time_t * 
 	NVIPFIX_DT_FROM_TM( a_datetime, datetime );
 	NVIPFIX_TIMESPAN_SET_SECONDS( a_datetime->tzOffset, difftime( mktime( &datetimeUtc ), *a_ctime ) );
 
+	a_datetime->hasValue = result;
+
 	return result;
 }
 
