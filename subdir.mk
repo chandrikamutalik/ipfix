@@ -42,7 +42,7 @@ $(DIR_DEP)/_test.d
 $(DIR_OBJ)/%.o: $(DIR_SRC)/%.c
 	@echo 'Building file: $<'
 	@echo 'Invoking: Cross GCC Compiler'
-	$(CC) -std=c99 `pkg-config --cflags glib-2.0` $(CFLAGS) -O0 -g3 -Wall -c -fmessage-length=0 -fopenmp -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
+	$(CC) `pkg-config --cflags glib-2.0` $(CFLAGS) -O0 -g3 -Wall -c -fmessage-length=0 -fopenmp -MMD -MP -MF"$(@:%.o=%.d)" -MT"$(@)" -o "$@" "$<"
 	@echo 'Finished building: $<'
 	@echo ' '
 

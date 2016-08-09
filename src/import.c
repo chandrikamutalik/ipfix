@@ -18,6 +18,7 @@
  *
  */
 
+#include <time.h>
 #include <stddef.h>
 #include <stdbool.h>
 #include <string.h>
@@ -326,7 +327,7 @@ nvIPFIX_data_record_list_t * nvipfix_import_nvc( const nvIPFIX_CHAR * a_host,
     const nvIPFIX_datetime_t * a_startTs, const nvIPFIX_datetime_t * a_endTs, int within_last )
 {
     nvIPFIX_data_record_list_t * result = NULL;
-    timespec_t ts_now;
+    struct timespec ts_now;
 
     NVIPFIX_ERROR_INIT( error );
 
