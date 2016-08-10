@@ -32,6 +32,11 @@ void nvipfix_main_export( nvIPFIX_data_record_list_t * a_dataRecords,
 {
 	nvIPFIX_collector_info_list_item_t * collectors = nvipfix_config_collectors_get( );
 
+	if (a_dataRecords == NULL) {
+		nvipfix_log_warning( "no data records to export" );
+		return;
+	}
+
 	if (collectors == NULL) {
 		nvipfix_log_warning( "no collector(s) defined" );
 	}
