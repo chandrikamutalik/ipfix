@@ -212,9 +212,9 @@ nvIPFIX_error_t nvipfix_export(
 
 	NVIPFIX_ERROR_RAISE_IF( !nvipfix_export_init(), error, NV_IPFIX_ERROR_CODE_EXPORT_INIT, Init, "", NULL );
 
-	*ptr = NULL;
 	nvIPFIX_collector_private_t * priv = (nvIPFIX_collector_private_t *)(*ptr);
 	if (priv == NULL) {
+		NVIPFIX_TLOG_TRACE("Openning new session to collector host: %s", a_host);
 		priv = calloc( 1, sizeof (nvIPFIX_collector_private_t) );
 		NVIPFIX_ERROR_RAISE_IF( priv == NULL, error, NV_IPFIX_ERROR_CODE_MALLOC, CollectorAlloc,
 			"%s", "Collector malloc failed" );

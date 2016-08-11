@@ -31,6 +31,8 @@
 #include "include/config.h"
 
 
+static bool isInitialized = false;
+
 #define NVIPFIX_CONFIG_DEFAULT_PORT_STR "4739"
 #define NVIPFIX_CONFIG_DEFAULT_TRANSPORT NV_IPFIX_TRANSPORT_UDP
 
@@ -142,8 +144,6 @@ static nvIPFIX_collector_info_list_item_t * CollectorList = NULL;
 
 void nvipfix_config_init( void )
 {
-	static volatile bool isInitialized = false;
-
 	#pragma omp critical (nvipfixCritical_ConfigInit)
 	{
 		if (!isInitialized) {
@@ -175,83 +175,80 @@ void nvipfix_config_read( void )
 		int parentId = 0;
 		nvIPFIX_collector_info_t collector;
 
-		#pragma omp critical (nvipfixCritical_CollectorList)
-		{
-			while (fgets( buffer, sizeof buffer, configFile ) != NULL) {
-				if (strchr(buffer, '\n') == NULL) {
-					nvipfix_tlog_error( NVIPFIX_T( "configuration file line too long. line = %d" ), line );
+		while (fgets( buffer, sizeof buffer, configFile ) != NULL) {
+			if (strchr(buffer, '\n') == NULL) {
+				nvipfix_tlog_error( NVIPFIX_T( "configuration file line too long. line = %d" ), line );
+				break;
+			}
+
+			if (!nvipfix_config_is_empty_line( buffer )) {
+				nvIPFIX_string_list_t * tokens = nvipfix_string_split( buffer, " \t\n\r" );
+
+				if (tokens == NULL) {
+					nvipfix_log_error( "%s: unable to tokenize a line", __func__ );
 					break;
 				}
 
-				if (!nvipfix_config_is_empty_line( buffer )) {
-					nvIPFIX_string_list_t * tokens = nvipfix_string_split( buffer, " \t\n\r" );
+				nvIPFIX_string_list_item_t * token = tokens->head;
 
-					if (tokens == NULL) {
-						nvipfix_log_error( "%s: unable to tokenize a line", __func__ );
-						break;
+				int tokenIndex = 0;
+				const nvIPFIX_setting_t * setting = NULL;
+
+				while (token != NULL) {
+					tokenIndex++;
+
+					if (token->value[0] == '{') {
+						parentId = id;
+						tokenIndex = 0;
 					}
-
-					nvIPFIX_string_list_item_t * token = tokens->head;
-
-					int tokenIndex = 0;
-					const nvIPFIX_setting_t * setting = NULL;
-
-					while (token != NULL) {
-						tokenIndex++;
-
-						if (token->value[0] == '{') {
-							parentId = id;
-							tokenIndex = 0;
+					else if (token->value[0] == '}') {
+						if (parentId == SettingIdCollector) {
+							nvipfix_config_add_collector( &collector );
 						}
-						else if (token->value[0] == '}') {
+
+						parentId = 0;
+						tokenIndex = 0;
+					}
+					else if (tokenIndex == 1) {
+						setting = nvipfix_config_get_setting( token->value, parentId );
+
+						if (setting != NULL) {
+							id = setting->id;
+
+							if (id == SettingIdCollector) {
+								memset( &collector, 0, sizeof (nvIPFIX_collector_info_t) );
+								parentId = id;
+							}
+						}
+						else {
+							nvipfix_log_error( "%s: unknown setting '%s', %d", __func__, token->value, line );
+						}
+					}
+					else if (tokenIndex == 2) {
+						if (setting != NULL) {
 							if (parentId == SettingIdCollector) {
-								nvipfix_config_add_collector( &collector );
+								setting->parseValue( token->value, ((char *)&collector) + setting->offset );
 							}
-
-							parentId = 0;
-							tokenIndex = 0;
-						}
-						else if (tokenIndex == 1) {
-							setting = nvipfix_config_get_setting( token->value, parentId );
-
-							if (setting != NULL) {
-								id = setting->id;
-
-								if (id == SettingIdCollector) {
-									memset( &collector, 0, sizeof (nvIPFIX_collector_info_t) );
-									parentId = id;
-								}
-							}
-							else {
-								nvipfix_log_error( "%s: unknown setting '%s', %d", __func__, token->value, line );
+							else if (parentId == 0) {
+								setting->parseValue( token->value, setting->value );
 							}
 						}
-						else if (tokenIndex == 2) {
-							if (setting != NULL) {
-								if (parentId == SettingIdCollector) {
-									setting->parseValue( token->value, ((char *)&collector) + setting->offset );
-								}
-								else if (parentId == 0) {
-									setting->parseValue( token->value, setting->value );
-								}
-							}
-						}
-
-						if (tokenIndex > 2) {
-							nvipfix_log_error( "%s: bad configuration. line %d", __func__, line );
-						}
-
-						token = token->next;
 					}
 
-					nvipfix_string_list_free( tokens, true );
-				}
-				else {
-					NVIPFIX_TLOG_DEBUG0( "line is empty. %d", line );
+					if (tokenIndex > 2) {
+						nvipfix_log_error( "%s: bad configuration. line %d", __func__, line );
+					}
+
+					token = token->next;
 				}
 
-				line++;
+				nvipfix_string_list_free( tokens, true );
 			}
+			else {
+				NVIPFIX_TLOG_DEBUG0( "line is empty. %d", line );
+			}
+
+			line++;
 		}
 
 		if (parentId != 0) {
