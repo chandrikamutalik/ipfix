@@ -49,7 +49,7 @@
 
 #define	NV_IPFIX_VERSION_MAJOR 0
 #define NV_IPFIX_VERSION_MINOR 0
-#define NV_IPFIX_VERSION_REV 2
+#define NV_IPFIX_VERSION_REV 4
 
 #define NVIPFIX_VERSION( a_ver_major, a_ver_minor, a_ver_rev ) (#a_ver_major "." #a_ver_minor "." #a_ver_rev)
 #define NVIPFIX_VERSION_TO_STRING( a_ver_major, a_ver_minor, a_ver_rev ) NVIPFIX_VERSION( a_ver_major, a_ver_minor, a_ver_rev )
