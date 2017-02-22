@@ -62,7 +62,6 @@ typedef struct _nvIPFIX_setting_t {
 
 static void nvipfix_config_init( void );
 static void nvipfix_config_read( void );
-static void nvipfix_config_cleanup( void );
 static void nvipfix_config_add_collector( nvIPFIX_collector_info_t * );
 
 static bool nvipfix_config_is_empty_line( char * a_line );
@@ -150,13 +149,12 @@ void nvipfix_config_init( void )
 			nvipfix_config_cleanup();
 			nvipfix_config_read();
 
-			atexit( nvipfix_config_cleanup );
 			isInitialized = true;
 		}
 	}
 }
 
-nvIPFIX_collector_info_list_item_t * nvipfix_config_collectors_get( )
+nvIPFIX_collector_info_list_item_t * nvipfix_config_collectors_get( void )
 {
 	nvipfix_config_init();
 

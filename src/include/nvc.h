@@ -35,6 +35,27 @@
 #endif
 #endif
 
+#ifdef PLURIBUS
+
+#include "nvc_client.h"
+#include "nvOS.h"
+
+#else
+
+#ifndef __SVR4
+typedef enum { B_FALSE, B_TRUE } boolean_t;
+typedef struct ether_addr ether_addr_t;
+#endif
+typedef uint64_t nvOS_time_t;
+typedef struct in6_addr in6_addr_t;
+typedef int64_t hrtime_t;
+
+typedef uint16_t nvc_pcl_vlan_id_t;
+typedef uint32_t nvc_pcl_vxlan_id_t;
+typedef char nvc_name_string_t[nvc_PCL_NAME_LEN];
+typedef uint16_t nvc_ether_type_t;
+typedef uint16_t nvc_service_port_type_t;
+typedef uint8_t nvc_ip_protocol_t;
 
 #define	nvOS_RESULT_MSG_LEN 255
 
@@ -47,21 +68,6 @@
 #define nvc_stats_args_within_last ((uint64_t)1 << 7)
 
 #define	nvc_format_args_limit_output	((uint64_t)1 << 2)
-
-
-#ifndef __SVR4
-typedef enum { B_FALSE, B_TRUE } boolean_t;
-typedef struct ether_addr ether_addr_t;
-#endif
-typedef uint64_t nvOS_time_t;
-typedef uint16_t nvc_pcl_vlan_id_t;
-typedef uint32_t nvc_pcl_vxlan_id_t;
-typedef char nvc_name_string_t[nvc_PCL_NAME_LEN];
-typedef uint16_t nvc_ether_type_t;
-typedef uint16_t nvc_service_port_type_t;
-typedef uint8_t nvc_ip_protocol_t;
-typedef struct in6_addr in6_addr_t;
-typedef int64_t hrtime_t;
 
 typedef enum {
 	nvc_CONN_TRANS_ST_AND_END = 0,
@@ -246,5 +252,6 @@ void nvc_disconnect( nvOS_io_t * io );
  */
 void nvc_done( nvOS_io_t * io );
 
+#endif
 
 #endif /* __NVIPFIX_NVC_H */

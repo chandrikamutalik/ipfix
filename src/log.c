@@ -49,7 +49,6 @@ extern int log4cfg_size;
 
 
 static void nvipfix_log_init( void );
-static void nvipfix_log_cleanup( void );
 static void nvipfix_log( int a_priority, const char * a_fmt, va_list * args );
 static void nvipfix_tlog( int a_priority, const nvIPFIX_TCHAR * a_fmt, va_list * args );
 static void nvipfix_log_message( int a_priority, const char * a_message );
@@ -138,7 +137,6 @@ void nvipfix_log_init( void )
 			log4c_load( LOG4C_CFG );
 			Category = log4c_category_get( NVIPFIX_LOG_CATEGORY_NAME_MAIN );
 			CategoryError = log4c_category_get( NVIPFIX_LOG_CATEGORY_NAME_ERROR );
-			atexit( nvipfix_log_cleanup );
 			isInitialized = true;
 		}
 	}

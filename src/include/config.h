@@ -93,5 +93,6 @@ nvIPFIX_collector_info_list_item_t * nvipfix_config_collectors_get( );
 
 void nvipfix_config_collectors_free( nvIPFIX_collector_info_t * a_collectors );
 
+void nvipfix_config_cleanup( void );
 
 #endif /* __NVIPFIX_CONFIG_H */

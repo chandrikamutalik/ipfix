@@ -112,5 +112,6 @@ void nvipfix_tlog_error( const nvIPFIX_TCHAR * a_fmt, ... );
  */
 void nvipfix_log_error( const nvIPFIX_CHAR * a_fmt, ... );
 
+void nvipfix_log_cleanup( void );
 
 #endif /* __NVIPFIX_LOG_H */

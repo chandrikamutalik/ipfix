@@ -60,5 +60,6 @@ nvIPFIX_error_t nvipfix_export(
 		const nvIPFIX_datetime_t * a_endTs,
 		void **ptr );
 
+void nvipfix_export_cleanup( void );
 
 #endif /* __NVIPFIX_EXPORT_H */

@@ -51,5 +51,6 @@ void nvipfix_main_export_file( const nvIPFIX_CHAR * a_filename,
  */
 void nvipfix_main_export_nvc( const nvIPFIX_datetime_t * a_startTs, const nvIPFIX_datetime_t * a_endTs, int within_last );
 
+void nvipfix_data_cleanup(void);
 
 #endif /* __NVIPFIX_MAIN_H */

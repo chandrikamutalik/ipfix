@@ -30,10 +30,9 @@
 #include "include/error.h"
 #include "include/log.h"
 #include "include/data.h"
-#include "include/nvc.h"
 
 #include "include/import.h"
-
+#include "include/nvc.h"
 
 #define NVIPFIX_IMPORT_ITEM( a_name, a_field, a_parseValue ) { .name = a_name, \
 	.offset = offsetof( nvIPFIX_data_record_t, a_field ), .parseValue = a_parseValue }

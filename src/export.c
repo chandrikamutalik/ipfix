@@ -120,8 +120,6 @@ static fbInfoElementSpec_t StatsTemplate[] = {
 static fbInfoModel_t * InfoModel = NULL;
 
 static bool nvipfix_export_init( void );
-static void nvipfix_export_cleanup( void );
-
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
@@ -147,7 +145,6 @@ bool nvipfix_export_init( void )
 
 			fbInfoModelAddElement( InfoModel, &ieLatency );
 
-			atexit( nvipfix_export_cleanup );
 			isInitialized = true;
 
 			NVIPFIX_ERROR_RAISE( error, NV_IPFIX_ERROR_CODE_NONE, None );

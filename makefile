@@ -37,6 +37,10 @@ ifeq ($(TEST), 1)
 	CFLAGS := $(CFLAGS) -DNVIPFIX_DEF_TEST
 endif
 
+ifeq ($(STD_PTHREAD), 1)
+	CFLAGS := $(CFLAGS) -D_POSIX_PTHREAD_SEMANTICS
+endif
+
 ifneq ($(MAKECMDGOALS),clean)
 ifneq ($(strip $(C_DEPS)),)
 -include $(C_DEPS)

@@ -84,3 +84,10 @@ void nvipfix_main_export_nvc(const nvIPFIX_datetime_t *a_startTs,
 	nvipfix_data_list_free( dataRecords );
 	nvipfix_config_switch_info_free( switchInfo );
 }
+
+void nvipfix_data_cleanup(void)
+{
+        nvipfix_export_cleanup();
+	nvipfix_config_cleanup();
+	nvipfix_log_cleanup();
+}
